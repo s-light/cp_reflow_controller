@@ -67,7 +67,7 @@ def ismoduleclass(object):
     """
     Return true if the object is the module class.
     """
-    return object
+    return "module" in repr(object)
 
 
 def get_module_custom_classes(module, base_class=None):
@@ -85,10 +85,10 @@ def get_module_custom_classes(module, base_class=None):
         # )
         if isclass(attribute):
             if base_class:
-                print("  issubclass(attribute)", issubclass(attribute, base_class))
+                # print("  issubclass(attribute)", issubclass(attribute, base_class))
                 if issubclass(attribute, base_class):
                     classes[attribute_name] = attribute
-            elif "module" not in repr(attribute):
+            elif not ismoduleclass(attribute):
                 # ^ exclude module class
                 classes[attribute_name] = attribute
     return classes
@@ -126,7 +126,7 @@ def _load_all_modules(path, names):
             try:
                 filename = path + "." + module_name
                 module = __import__(filename)
-                print("{} imported.".format(filename))
+                # print("{} imported.".format(filename))
             except Exception as e:
                 raise e
             else:
@@ -152,7 +152,7 @@ def _load_all_modules(path, names):
 
 def instantiate_classes(module_classes, class_instances={}):
     """instantiate specific class."""
-    print("module_classes", module_classes)
+    # print("module_classes", module_classes)
     # create a Object Instance from Class
     for class_name, class_obj in module_classes.items():
         if class_name not in class_instances:
@@ -166,7 +166,7 @@ def instantiate_classes_for_modules(module_infos, class_instances={}):
         # print("module_info.module", module_info["module"])
         module_classes = get_module_custom_classes(module_info["module"])
         instantiate_classes(module_classes, class_instances=class_instances)
-        print("class_instances", class_instances)
+        # print("class_instances", class_instances)
     return class_instances
 
 
@@ -188,7 +188,7 @@ def load_all_submodules():
 def load_all_submodules_and_instantiate_all_classes():
     """Load all submodules in this directory and instantiate all found classes in them."""
     module_infos = load_all_submodules()
-    print("module_infos", module_infos)
+    # print("module_infos", module_infos)
     class_instances = instantiate_classes_for_modules(module_infos)
     return module_infos, class_instances
 
