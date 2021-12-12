@@ -1,12 +1,12 @@
 import profiles
 
-"""Felder ISO-Cream 'Clear' (no-clean)"""
+"""Felder ISO-Cream 'Clear' (no-clean) SLOW"""
 
 
-class Felder_ISO_Cream_Clear(profiles.Profile):
-    """Felder ISO-Cream 'Clear' (no-clean)"""
+class Felder_ISO_Cream_Clear_SLOW(profiles.Profile):
+    """Felder ISO-Cream 'Clear' (no-clean) SLOW"""
 
-    title = """Felder ISO-Cream 'Clear' (no-clean)"""
+    title = "Felder ISO-Cream 'Clear' (no-clean) SLOW"
     alloy = "Sn96,5Ag3,0Cu0,5"
     melting_point = 220
     reference = "https://www.felder.de/files/felder/pdf/DE_23-Clear.pdf"
@@ -18,17 +18,17 @@ class Felder_ISO_Cream_Clear(profiles.Profile):
         },
         {
             "stage": "soak",
-            "duration": 90,
+            "duration": 120,
             "temp_target": 200,
         },
         {
             "stage": "reflow",
-            "duration": 40,
-            "temp_target": 245,
+            "duration": 50,
+            "temp_target": 240,
         },
         {
             "stage": "cool",
-            "duration": 70,
+            "duration": 130,
             "temp_target": 0,
         },
     ]
