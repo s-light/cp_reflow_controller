@@ -14,183 +14,23 @@ profile base class.
 """
 
 # import sys
-import os
 import time
 
-# import pkgutil
-# import importlib
+import load_modules
 
 ##########################################
-# globals
-
-
-##########################################
-# special functions
-
-
-def print_directory(path, tabs=0):
-    # https://learn.adafruit.com/micropython-hardware-sd-cards/tdicola-circuitpython#list-files-2976357-28
-    for file in os.listdir(path):
-        stats = os.stat(path + "/" + file)
-        filesize = stats[6]
-        isdir = stats[0] & 0x4000
-
-        if filesize < 1000:
-            sizestr = str(filesize) + " by"
-        elif filesize < 1000000:
-            sizestr = "%0.1f KB" % (filesize / 1000)
-        else:
-            sizestr = "%0.1f MB" % (filesize / 1000000)
-
-        prettyprintname = ""
-        for _ in range(tabs):
-            prettyprintname += "    "
-        prettyprintname += file
-        if isdir:
-            prettyprintname += "/"
-        print("{0:<40} Size: {1:>10}".format(prettyprintname, sizestr))
-
-        # recursively print directory contents
-        if isdir:
-            print_directory(path + "/" + file, tabs + 1)
-
-
-def isclass(object):
-    """
-    Return true if the object is a class.
-    source:
-    https://stackoverflow.com/questions/395735/how-to-check-whether-a-variable-is-a-class-or-not#comment83233256_10123520
-    """
-    return isinstance(object, type)
-
-
-def ismoduleclass(object):
-    """
-    Return true if the object is the module class.
-    """
-    return "module" in repr(object)
-
-
-def get_module_custom_classes(module, base_class=None):
-    classes = {}
-    for attribute_name in dir(module):
-        attribute = getattr(module, attribute_name)
-        # print(
-        #     "attribute '{attribute_name}': {attribute}\n"
-        #     "  isclass: {isclass}"
-        #     "".format(
-        #         attribute_name=attribute_name,
-        #         attribute=attribute,
-        #         isclass=isclass(attribute),
-        #     )
-        # )
-        if isclass(attribute):
-            if base_class:
-                # print("  issubclass(attribute)", issubclass(attribute, base_class))
-                if issubclass(attribute, base_class):
-                    classes[attribute_name] = attribute
-            elif not ismoduleclass(attribute):
-                # ^ exclude module class
-                classes[attribute_name] = attribute
-    return classes
-
-
-def _load_all_modules(path, names):
-    """Load all modules in path.
-
-    usage:
-        # Load all modules in the current directory.
-        load_all_modules(__file__,__name__)
-
-    based on
-        http://stackoverflow.com/a/25459405/574981
-        from Daniel Kauffman
-    and circuitpython variant
-        https://forum.micropython.org/viewtopic.php?p=29226&#p29226
-        https://github.com/pewpew-game/game-menu/blob/master/main.py
-
-    converted to circuitpython variant
-    """
-
-    # print("path", path)
-    # print("names", names)
-    # print("[os.path.dirname(path)]", [os.path.dirname(path)])
-    # print("os.stat(path)", os.stat(path))
-    # print_directory(names)
-
-    module_names = []
-    module_infos = {}
-    for name in os.listdir(path):
-        if name.endswith(".py") and name != "main.py" and name != "__init__.py":
-            # print("name", name)
-            module_name = name[:-3]
-            try:
-                filename = path + "." + module_name
-                module = __import__(filename)
-                # print("{} imported.".format(filename))
-            except Exception as e:
-                raise e
-            else:
-                module_names.append(module_name)
-                module_infos[module_name] = {
-                    "name": module_name,
-                    "filename": filename,
-                    "module": getattr(module, module_name),
-                }
-
-    # # For each module in the current directory...
-    # for importer, module_name, is_package in pkgutil.iter_modules(
-    #     [os.path.dirname(path)]
-    # ):
-    #     # print("importing:", names + '.' + module_name)
-    #     # Import the module.
-    #     importlib.import_module(names + "." + module_name)
-    #    module_names.append(module_name)
-
-    # return module_names, module_infos
-    return module_infos
-
-
-def instantiate_classes(module_classes, class_instances={}):
-    """instantiate specific class."""
-    # print("module_classes", module_classes)
-    # create a Object Instance from Class
-    for class_name, class_obj in module_classes.items():
-        if class_name not in class_instances:
-            class_instances[class_name] = class_obj()
-    return class_instances
-
-
-def instantiate_classes_for_modules(module_infos, class_instances={}):
-    for module_name, module_info in module_infos.items():
-        # print("module_info", module_info)
-        # print("module_info.module", module_info["module"])
-        module_classes = get_module_custom_classes(module_info["module"])
-        instantiate_classes(module_classes, class_instances=class_instances)
-        # print("class_instances", class_instances)
-    return class_instances
-
-
-##########################################
-# package init
-
-# Load all modules in the current directory.
-# load_all_modules(__file__, __name__)
-
-
-def load_all_submodules():
-    """Load all submodules in this directory."""
-    filename = __file__
-    modulbasepath = __name__
-    module_infos = _load_all_modules(modulbasepath, filename)
-    return module_infos
+# modul handling
 
 
 def load_all_submodules_and_instantiate_all_classes():
     """Load all submodules in this directory and instantiate all found classes in them."""
-    module_infos = load_all_submodules()
-    # print("module_infos", module_infos)
-    class_instances = instantiate_classes_for_modules(module_infos)
+    (
+        module_infos,
+        class_instances,
+    ) = load_modules.load_all_submodules_and_instantiate_all_classes(
+        modulbasepath=__name__,
+        filename=__file__,
+    )
     return module_infos, class_instances
 
 
@@ -240,16 +80,21 @@ class Profile(object):
         self._steps_init()
         self.runtime_start = -1
 
+    @property
+    def runtime(self):
+        return time.monotonic() - self.profile_selected.runtime_start
+
     def _steps_init(self):
-        self.steps.prepend(
+        self.steps.insert(
+            0,  # index
             {
                 "stage": "start",
                 "duration": 0,
                 "temp_target": 0,
-                "duration_sum": 0,
+                "runtime_end": 0,
             },
         )
-        self.steps.apend(
+        self.steps.append(
             {
                 "stage": "end",
                 "duration": 0,
@@ -257,10 +102,11 @@ class Profile(object):
             },
         )
         for index, step in enumerate(self.steps):
-            if "duration_sum" not in step:
-                sum = self.steps[index - 1]["duration_sum"]
-                sum += step["duration"]
-                step["duration_sum"] = sum
+            if "runtime_end" not in step:
+                sum_last = self.steps[index - 1]["runtime_end"]
+                sum = sum_last + step["duration"]
+                step["runtime_start"] = self.steps[index - 1]["runtime_end"]
+                step["runtime_end"] = sum
 
     @property
     def step_current_index(self):
@@ -304,6 +150,7 @@ class Profile(object):
                 max_temperatur = step.temp_target
         return max_temperatur
 
+    # helper
     def find_current_step(self, duration):
         duration_sum = 0
         steps_iter = iter(self.steps)
@@ -313,17 +160,31 @@ class Profile(object):
             duration_sum += step.duration
         return step
 
+    # reflow process
     def start(self):
         self.step_start()
         self.runtime_start = time.monotonic()
 
     def step_next_check_and_do(self):
-        runtime = time.monotonic() - self.profile_selected.runtime_start
         running = False
-        if runtime > self.step_current["duration_sum"]:
+        if self.runtime > self.step_current["runtime_end"]:
             if self.step_next():
                 running = True
         return running
+
+    def temp_get_current_proportional_target(self):
+        """get the temperature_target in proportion to the current runtime."""
+        temp_current = None
+        if self.step_current:
+            step_runtime = self.runtime - self.step_current["runtime_start"]
+            # duration     = 100% = temp_target
+            # step_runtime =    x = temp_current
+            temp_current = (
+                self.step_current["temp_target"]
+                * step_runtime
+                / self.step_current["duration"]
+            )
+        return temp_current
 
 
 ##########################################
