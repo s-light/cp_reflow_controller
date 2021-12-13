@@ -99,6 +99,25 @@ class ReflowController(object):
 
         # get_current_step
 
+    # def profile_get_by_name(self, title):
+    #     index = self.profiles_names.index(name)
+    #     return self.profiles[index]
+    #
+    # def profile_get_by_name(self, name):
+    #     # index = self.profiles_names.index(name)
+    #     return self.profiles[name]
+
+    def profile_get_next_name(self):
+        print("self.profile_selected.__name__", self.profile_selected.__name__)
+        index_current = self.profiles_names.index(self.profile_selected.__name__)
+        index_new = index_current + 1
+        if index_new >= len(self.profiles_names):
+            index_new = 0
+        return self.profiles_names[index_new]
+
+    def profile_select_next(self):
+        self.profile_selected = self.profiles[self.profile_get_next_name()]
+
     def load_config(self, filename="/config.json"):
         self.config = {}
         try:
@@ -248,14 +267,6 @@ class ReflowController(object):
     def menu_reflowcycle_stop(self):
         self.switch_to_state("standby")
 
-    def menu_profile_select_next(self, input_string):
-        self.profile_selected
-        index_current = self.profiles_names.index(self.profile_selected.title)
-        index_new = index_current + 1
-        if index_new >= len(self.profiles_names):
-            index_new = 0
-        self.profile_selected = self.profiles[self.profiles_names[index_new]]
-
     # handling actuall reflow process
     def reflowcycle_start(self):
         self.profile_selected.start()
@@ -298,15 +309,26 @@ class ReflowController(object):
 
     def print_help(self):
         """Print Help."""
+        profile_list = ""
+        # for name, profile in self.profiles.items():
+        #     profile_list += "  {}\n".format(profile.title)
+        # ^--> random order..
+        for name in self.profiles_names:
+            current = ""
+            if self.profiles[name] is self.profile_selected:
+                current = "*"
+            profile_list += "  {: 1}{}\n".format(
+                current, self.profiles[name].title_short
+            )
         print(
             "you can set some options:\n"
-            "- select next profil: 'p' ({profile_selected})\n"
-            "- start calibration cycle: 'calibrate'\n"
-            "- start reflow cycle: 'start'\n"
-            "- stop reflow cycle: 'stop'\n"
+            "- 'p' select next profil\n"
+            "{profile_list}"
+            "- 'calibrate'\n"
+            "- 'start' reflow cycle\n"
+            "- 'stop' reflow cycle\n"
             "".format(
-                # profile_selected=self.profile_selected.__name__,
-                profile_selected=self.profile_selected.title,
+                profile_list=profile_list,
             )
         )
 
@@ -320,7 +342,7 @@ class ReflowController(object):
         if "stop" in input_string:
             self.menu_reflowcycle_stop()
         if "p" in input_string:
-            self.menu_profile_select_next(input_string)
+            self.profile_select_next()
         # prepare new input
         self.print_help()
         print(">> ", end="")
