@@ -21,7 +21,7 @@ class State(object):
         else:
             self.leave()
 
-    def __init__(self, name, enter, update, leave):
+    def __init__(self, name, enter=None, update=None, leave=None):
         super(State, self).__init__()
         self._active = False
         self.name = name

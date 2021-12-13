@@ -6,7 +6,7 @@ import profiles
 class Felder_ISO_Cream_Clear(profiles.Profile):
     """Felder ISO-Cream 'Clear' (no-clean)"""
 
-    title = """Felder ISO-Cream 'Clear' (no-clean)"""
+    title = "Felder ISO-Cream 'Clear' (no-clean)"
     alloy = "Sn96,5Ag3,0Cu0,5"
     melting_point = 220
     reference = "https://www.felder.de/files/felder/pdf/DE_23-Clear.pdf"
