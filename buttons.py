@@ -19,7 +19,6 @@ class PyBadgeButtons(object):
 
     def __init__(self):
         super(PyBadgeButtons, self).__init__()
-        self.setup_hw()
 
         # https://learn.adafruit.com/debouncer-library-python-circuitpython-buttons-sensors/advanced-debouncing
         self.a = Debouncer(lambda: pybadger.button.a)

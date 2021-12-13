@@ -23,6 +23,8 @@ import adafruit_max31855
 
 from configdict import extend_deep
 
+from state import State
+
 import profiles as myprofiles
 
 ##########################################
@@ -56,6 +58,11 @@ class ReflowController(object):
     profiles_names = []
     profiles = []
 
+    temperature = None
+    temperature_reference = None
+
+    states = None
+
     def __init__(self):
         super(ReflowController, self).__init__()
         print("ReflowController")
@@ -63,6 +70,7 @@ class ReflowController(object):
         print(42 * "*")
         self.load_profiles()
         self.load_config()
+        self.states_setup()
         # select stored profile
         if self.config["profile"] in self.profiles_names:
             self.profile_selected = self.profiles[self.config["profile"]]
@@ -132,8 +140,74 @@ class ReflowController(object):
 
     ##########################################
     # state handling
-    def switch_to_mode(self, mode):
-        """switch to new mode."""
+
+    def switch_to_state(self, state):
+        """switch to new state."""
+        self.state_current.active = False
+        self.state_current = self.states[state]
+        self.state_current.active = True
+        self.state_current.update()
+
+    def states_standby_enter(self):
+        pass
+
+    def states_standby_leave(self):
+        pass
+
+    def states_standby_update(self):
+        pass
+
+    def states_calibrate_enter(self):
+        pass
+
+    def states_calibrate_leave(self):
+        self.switch_to_state("standby")
+
+    def states_calibrate_update(self):
+        pass
+
+    def states_reflow_enter(self):
+        pass
+
+    def states_reflow_leave(self):
+        self.switch_to_state("standby")
+
+    def states_reflow_update(self):
+        pass
+
+    def states_setup(self):
+        self.states = {
+            # "standby": State(name="standby", enter=(lambda: pass),),
+            "standby": State(
+                name="standby",
+                enter=self.states_standby_enter,
+                leave=self.states_standby_leave,
+                update=self.states_standby_update,
+            ),
+            "calibrate": State(
+                name="calibrate",
+                enter=self.states_calibrate_enter,
+                leave=self.states_calibrate_leave,
+                update=self.states_calibrate_update,
+            ),
+            "reflow": State(
+                name="reflow",
+                enter=self.states_reflow_enter,
+                leave=self.states_reflow_leave,
+                update=self.states_reflow_update,
+            ),
+        }
+        self.switch_to_state("standby")
+
+    ##########################################
+    # reflow
+
+    def reflowcycle_update(self):
+        # handle heating with currently selected profile..
+
+        if self.profile_selected.step_next_check_and_do() is None:
+            # we reached the end of the reflow process
+            pass
 
     ##########################################
     # calibration functions
@@ -181,6 +255,29 @@ class ReflowController(object):
         self.print_help()
         print(">> ", end="")
 
+    @staticmethod
+    def input_parse_pixel_set(input_string):
+        """parse pixel_set."""
+        # row = 0
+        # col = 0
+        # value = 0
+        # sep_pos = input_string.find(",")
+        # sep_value = input_string.find(":")
+        # try:
+        #     col = int(input_string[1:sep_pos])
+        # except ValueError as e:
+        #     print("Exception parsing 'col': ", e)
+        # try:
+        #     row = int(input_string[sep_pos + 1 : sep_value])
+        # except ValueError as e:
+        #     print("Exception parsing 'row': ", e)
+        # try:
+        #     value = int(input_string[sep_value + 1 :])
+        # except ValueError as e:
+        #     print("Exception parsing 'value': ", e)
+        # pixel_index = 0
+        pass
+
     ##########################################
     # main handling
 
@@ -189,17 +286,19 @@ class ReflowController(object):
             temperature_temp = self.max31855.temperature
             temperature_reference_temp = self.max31855.reference_temperature
         except RuntimeError as e:
+            self.temperature = None
+            self.temperature_reference = None
             print(e)
-            if "thermocouple not connected" in e:
-                pass
-            elif "short circuit to ground" in e:
+            if "short circuit to ground" in e:
                 pass
             elif "short circuit to power" in e:
                 pass
             elif "faulty reading" in e:
                 pass
-            self.temperature = None
-            self.temperature_reference = None
+            elif "thermocouple not connected" in e:
+                pass
+            else:
+                raise e
         else:
             if temperature_temp != self.temperature:
                 self.temperature = temperature_temp
@@ -227,6 +326,7 @@ class ReflowController(object):
 
     def main_loop(self):
         self.temperature_update()
+        self.state_current.update()
         self.check_buttons()
         if supervisor.runtime.serial_bytes_available:
             self.check_input()

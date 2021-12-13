@@ -13,8 +13,9 @@ profile base class.
         ~ all fine :-)
 """
 
-import sys
+# import sys
 import os
+import time
 
 # import pkgutil
 # import importlib
@@ -233,6 +234,61 @@ class Profile(object):
         },
     ]
 
+    def __init__(self):
+        """Init profile."""
+        self._step_current = None
+        self._steps_init()
+        self.runtime_start = -1
+
+    def _steps_init(self):
+        self.steps.prepend(
+            {
+                "stage": "start",
+                "duration": 0,
+                "temp_target": 0,
+                "duration_sum": 0,
+            },
+        )
+        self.steps.apend(
+            {
+                "stage": "end",
+                "duration": 0,
+                "temp_target": 0,
+            },
+        )
+        for index, step in enumerate(self.steps):
+            if "duration_sum" not in step:
+                sum = self.steps[index - 1]["duration_sum"]
+                sum += step["duration"]
+                step["duration_sum"] = sum
+
+    @property
+    def step_current_index(self):
+        return self._step_current_index
+
+    @property
+    def step_current(self):
+        return self._step_current
+
+    @step_current.setter
+    def step_current(self, value):
+        self._step_current_index = value
+        if value is None:
+            self._step_current = None
+        else:
+            self._step_current = self.steps[self._step_current_index]
+        return self._step_current
+
+    def step_start(self):
+        self.step_current(0)
+        return self.step_current
+
+    def step_next(self):
+        step = self.step_current_index + 1
+        if step >= len(self.steps):
+            step = None
+        return self.step_current(step)
+
     @property
     def duration(self):
         duration = 0
@@ -248,10 +304,7 @@ class Profile(object):
                 max_temperatur = step.temp_target
         return max_temperatur
 
-    def __init__(self):
-        """Init profile."""
-
-    def get_current_step(self, duration):
+    def find_current_step(self, duration):
         duration_sum = 0
         steps_iter = iter(self.steps)
         step = None
@@ -260,16 +313,17 @@ class Profile(object):
             duration_sum += step.duration
         return step
 
+    def start(self):
+        self.step_start()
+        self.runtime_start = time.monotonic()
 
-##########################################
-if __name__ == "__main__":
+    def step_next_check_and_do(self):
+        runtime = time.monotonic() - self.profile_selected.runtime_start
+        running = False
+        if runtime > self.step_current["duration_sum"]:
+            if self.step_next():
+                running = True
+        return running
 
-    print(42 * "*")
-    print("Python Version: " + sys.version)
-    print(42 * "*")
-    print(__doc__)
-    print(42 * "*")
-    print("This Module has no stand alone functionality.")
-    print(42 * "*")
 
 ##########################################
