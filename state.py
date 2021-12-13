@@ -21,13 +21,13 @@ class State(object):
         else:
             self.leave()
 
-    def __init__(self, name, enter, leave, update):
+    def __init__(self, name, enter, update, leave):
         super(State, self).__init__()
         self._active = False
         self.name = name
         self.enter = enter
-        self.leave = leave
         self.update = update
+        self.leave = leave
 
     def enter(self):
         """enter state."""

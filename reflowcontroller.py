@@ -49,20 +49,6 @@ class ReflowController(object):
     }
     config = {}
 
-    spi = None
-    max31855_cs = None
-    max31855 = None
-
-    heating = None
-
-    profiles_names = []
-    profiles = []
-
-    temperature = None
-    temperature_reference = None
-
-    states = None
-
     def __init__(self):
         super(ReflowController, self).__init__()
         print("ReflowController")
@@ -124,13 +110,22 @@ class ReflowController(object):
         board_pin_name = self.config["hw"][pin_name]
         return getattr(board, board_pin_name)
 
+    @property
+    def heating(self):
+        return self._heating.value
+
+    @heating.setter
+    def heating(self, value):
+        self._heating.value = value
+        return self._heating.value
+
     def setup_hw(self):
         self.spi = board.SPI()
         self.max31855_cs = digitalio.DigitalInOut(self.get_pin("max31855_cs_pin"))
         self.max31855 = adafruit_max31855.MAX31855(self.spi, self.max31855_cs)
 
-        self.heating = digitalio.DigitalInOut(self.get_pin("heating_pin"))
-        self.heating.direction = digitalio.Direction.OUTPUT
+        self._heating = digitalio.DigitalInOut(self.get_pin("heating_pin"))
+        self._heating.direction = digitalio.Direction.OUTPUT
 
         # https://circuitpython.readthedocs.io/projects/pybadger/en/latest/api.html
         pybadger.auto_dim_display(delay=self.config["hw"]["auto_dim_display"])
@@ -148,32 +143,40 @@ class ReflowController(object):
         self.state_current.active = True
         self.state_current.update()
 
+    # standby
     def states_standby_enter(self):
+        self.heating = False
+
+    def states_standby_update(self):
         pass
 
     def states_standby_leave(self):
         pass
 
-    def states_standby_update(self):
+    # calibrate
+    def states_calibrate_enter(self):
         pass
 
-    def states_calibrate_enter(self):
+    def states_calibrate_update(self):
         pass
 
     def states_calibrate_leave(self):
         self.switch_to_state("standby")
 
-    def states_calibrate_update(self):
-        pass
-
+    # reflow
     def states_reflow_enter(self):
         pass
 
     def states_reflow_leave(self):
-        self.switch_to_state("standby")
+        self.switch_to_state("reflow_done")
 
-    def states_reflow_update(self):
+    # reflow_done
+    def states_reflow_done_enter(self):
         pass
+
+    def states_reflow_done_update(self):
+        if self.buttons.select.rose:
+            self.switch_to_state("standby")
 
     def states_setup(self):
         self.states = {
@@ -181,20 +184,26 @@ class ReflowController(object):
             "standby": State(
                 name="standby",
                 enter=self.states_standby_enter,
-                leave=self.states_standby_leave,
                 update=self.states_standby_update,
+                leave=self.states_standby_leave,
             ),
             "calibrate": State(
                 name="calibrate",
                 enter=self.states_calibrate_enter,
-                leave=self.states_calibrate_leave,
                 update=self.states_calibrate_update,
+                leave=self.states_calibrate_leave,
             ),
             "reflow": State(
                 name="reflow",
                 enter=self.states_reflow_enter,
+                update=self.reflowcycle_update,
                 leave=self.states_reflow_leave,
-                update=self.states_reflow_update,
+            ),
+            "reflow_done": State(
+                name="reflow_done",
+                enter=self.states_reflow_enter,
+                update=self.states_reflow_done_update,
+                leave=lambda: self.switch_to_state("standby"),
             ),
         }
         self.switch_to_state("standby")
