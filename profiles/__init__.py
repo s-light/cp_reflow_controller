@@ -204,6 +204,7 @@ def load_all_submodules_and_instantiate_all_classes():
 class Profile(object):
     """Name of Profile - Include Manufacture"""
 
+    # title should be the same as the class name
     title = """Name of Profile - Include Manufacture"""
     alloy = ("alloy name / description",)
     melting_point = 0
