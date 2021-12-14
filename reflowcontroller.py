@@ -52,9 +52,13 @@ class ReflowController(object):
         },
         "colors": {
             "off": (0, 0, 0),
-            "done": (50, 255, 0),
-            "warn": (255, 255, 0),
-            "error": (255, 0, 0),
+            # "done": (50, 255, 0),
+            # "warn": (255, 255, 0),
+            # "error": (255, 0, 0),
+            "info": (0, 1, 1),
+            "done": (0, 1, 0),
+            "warn": (2, 1, 0),
+            "error": (3, 0, 0),
         },
     }
     config = {}
@@ -227,9 +231,12 @@ class ReflowController(object):
     # reflow_prepare
     def states_reflow_prepare_enter(self):
         print("Do you really want to start the reflow cycle?")
-        print("selected profil:", self.profile_selected.title)
+        print("selected profil:")
+        self.profile_selected.print_profile()
+        print("")
         print("--> to start click 'START' button.")
         print("--> to cancle click any ohter button.")
+        self.pixels_all(self.colors["info"])
 
     def states_reflow_prepare_update(self):
         if self.buttons.start.rose:
@@ -246,8 +253,14 @@ class ReflowController(object):
             self.switch_to_state("standby")
 
     # reflow_done
+    def states_reflow_done_enter(self):
+        print("")
+        print("reflow cycle done. ")
+        print("please confirm with click on 'START'")
+        print("")
+
     def states_reflow_done_update(self):
-        if self.buttons.select.rose:
+        if self.buttons.start.rose:
             self.switch_to_state("standby")
 
     def states_reflow_done_leave(self):
@@ -283,9 +296,9 @@ class ReflowController(object):
             ),
             "reflow_done": State(
                 name="reflow_done",
-                # enter=self.states_reflow_done_enter,
+                enter=self.states_reflow_done_enter,
                 update=self.states_reflow_done_update,
-                enter=self.states_reflow_done_leave,
+                leave=self.states_reflow_done_leave,
                 # leave=lambda: self.switch_to_state("standby"),
             ),
         }
@@ -302,6 +315,7 @@ class ReflowController(object):
 
     # handling actuall reflow process
     def reflowcycle_start(self):
+        print("\n" * 8)
         self.profile_selected.start()
 
     def reflowcycle_update(self):
@@ -315,33 +329,14 @@ class ReflowController(object):
         # maybe just as simple hysteresis check
         # with prelearned timing..
 
-        # print(
-        #     # runtime:9999s target:999°C current:999°C
-        #     "{previous_line4}"
-        #     "{erase_line}stage:     '{stage}'\n"
-        #     "{erase_line}runtime:{runtime: >7.2f}s\n"
-        #     "{erase_line}target:  {orange}{target: >6.2f}{reset}°C\n"
-        #     "{erase_line}current: {current: >6.2f}°C\n"
-        #     "".format(
-        #         stage=self.profile_selected.step_current["stage"],
-        #         runtime=self.profile_selected.runtime,
-        #         target=temp_target,
-        #         current=self.temperature,
-        #         orange=terminal.colors.fg.orange,
-        #         reset=terminal.colors.reset,
-        #         previous_line4=terminal.control.cursor.previous_line(4),
-        #         erase_line=terminal.control.erase_line(0),
-        #     ),
-        #     end="",
-        # )
         if self.profile_selected.step_current:
             print(
-                # runtime:9999s target:999°C current:999°C
+                "{previous_line8}"
                 "\n\n\n\n"
-                "stage: {stage: >9}\n"
-                "runtime:{runtime: >7.2f}s\n"
-                "target:  {orange}{target: >6.2f}{reset}°C\n"
-                "current: {current: >6.2f}°C\n"
+                "{erase_line}stage:     '{stage}'\n"
+                "{erase_line}runtime:{runtime: >7.2f}s\n"
+                "{erase_line}target:  {orange}{target: >6.2f}{reset}°C\n"
+                "{erase_line}current: {current: >6.2f}°C\n"
                 "".format(
                     stage=self.profile_selected.step_current["stage"],
                     runtime=self.profile_selected.runtime,
@@ -349,12 +344,47 @@ class ReflowController(object):
                     current=self.temperature,
                     orange=terminal.colors.fg.orange,
                     reset=terminal.colors.reset,
+                    previous_line8=terminal.control.cursor.previous_line(8),
+                    erase_line=terminal.control.erase_line(0),
                 ),
                 end="",
             )
-            time.sleep(0.1)
-        step_check = self.profile_selected.step_next_check_and_do()
-        print("step_check", step_check)
+            # print(
+            #     # runtime:9999s target:999°C current:999°C
+            #     "\n\n\n\n"
+            #     "stage: {stage: >9}\n"
+            #     "runtime:{runtime: >7.2f}s\n"
+            #     "target:  {orange}{target: >6.2f}{reset}°C\n"
+            #     "current: {current: >6.2f}°C\n"
+            #     "".format(
+            #         stage=self.profile_selected.step_current["stage"],
+            #         runtime=self.profile_selected.runtime,
+            #         target=temp_target,
+            #         current=self.temperature,
+            #         orange=terminal.colors.fg.orange,
+            #         reset=terminal.colors.reset,
+            #     ),
+            #     end="",
+            # )
+            # time.sleep(0.1)
+
+            # set pixel proportional
+            pixel_count = len(self.pixels)
+            step_count = len(self.profile_selected.steps)
+            step_current_index = self.profile_selected.step_current_index
+            # pixel_count = 100% = steps_count
+            # pixel_max = x = steps_current_index
+            pixel_max = pixel_count * step_current_index / step_count
+            for index in range(pixel_count):
+                if index < pixel_max:
+                    self.pixels[index] = self.colors["info"]
+                else:
+                    self.pixels[index] = self.colors["off"]
+        profile_running = self.profile_selected.step_next_check_and_do()
+        # print("profile_running", profile_running)
+        if profile_running is False:
+            # we reached the end of the reflow process
+            self.switch_to_state("reflow_done")
         # if self.profile_selected.step_next_check_and_do() is False:
         #     # we reached the end of the reflow process
         #     self.switch_to_state("reflow_done")

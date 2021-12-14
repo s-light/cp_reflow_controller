@@ -16,6 +16,8 @@ profile base class.
 # import sys
 import time
 
+import ASCII_escape_code as terminal
+
 import load_modules
 
 ##########################################
@@ -79,7 +81,7 @@ class Profile(object):
         self._step_current = None
         self._steps_init()
         # print("Profile:", self.__name__)
-        # self.print_steps()
+        # self.print_steps(long=True)
         self.runtime_start = -1
 
     @property
@@ -93,6 +95,7 @@ class Profile(object):
                 "stage": "start",
                 "duration": 0,
                 "temp_target": 0,
+                "temp_start": 0,
                 "runtime_start": 0,
                 "runtime_end": 0,
             },
@@ -110,25 +113,70 @@ class Profile(object):
                 sum = sum_last + step["duration"]
                 step["runtime_start"] = self.steps[index - 1]["runtime_end"]
                 step["runtime_end"] = sum
+                step["temp_start"] = self.steps[index - 1]["temp_target"]
 
-    def print_steps(self):
-        for index, step in enumerate(self.steps):
-            print(
-                "step[{index}] '{stage}'\n"
-                # " stage '{}'\n"
-                " temp_target   {temp_target: >3}°C\n"
-                " duration      {duration: >3}s\n"
-                " runtime_start {runtime_start: >3}s\n"
-                " runtime_end   {runtime_end: >3}s\n"
-                "".format(
-                    index=index,
-                    stage=step["stage"],
-                    duration=step["duration"],
-                    temp_target=step["temp_target"],
-                    runtime_start=step["runtime_start"],
-                    runtime_end=step["runtime_end"],
-                )
+    def print_profile(self):
+        print(
+            "Profile: {name}\n"
+            " title   {title}\n"
+            " alloy   {alloy}\n"
+            " melting_point  {melting_point: >3}°C\n"
+            " duration       {duration: >3}s\n"
+            " max_temperatur {max_temperatur: >3}°C\n"
+            " steps:\n"
+            "{steps}"
+            "".format(
+                name=self.__name__,
+                title=self.title,
+                alloy=self.alloy,
+                melting_point=self.melting_point,
+                duration=self.duration,
+                max_temperatur=self.max_temperatur,
+                steps=self.formated_steps(pre=" "),
             )
+        )
+
+    def formated_steps(self, long=False, pre=""):
+        result = ""
+        for index, step in enumerate(self.steps):
+            if long:
+                result += (
+                    "{pre}step[{index}] '{stage}'\n"
+                    # " stage '{}'\n"
+                    "{pre} temp_target   {temp_target: >3}°C\n"
+                    "{pre} temp_start      {temp_start: >3}°C\n"
+                    "{pre} duration      {duration: >3}s\n"
+                    "{pre} runtime_start {runtime_start: >3}s\n"
+                    "{pre} runtime_end   {runtime_end: >3}s\n"
+                    "".format(
+                        pre=pre,
+                        index=index,
+                        stage=step["stage"],
+                        duration=step["duration"],
+                        temp_target=step["temp_target"],
+                        temp_start=step["temp_start"],
+                        runtime_start=step["runtime_start"],
+                        runtime_end=step["runtime_end"],
+                    )
+                )
+            else:
+                result += (
+                    "{pre}step[{index}] '{stage}'\n"
+                    # " stage '{}'\n"
+                    "{pre} temp_target   {temp_target: >3}°C\n"
+                    "{pre} duration      {duration: >3}s\n"
+                    "".format(
+                        pre=pre,
+                        index=index,
+                        stage=step["stage"],
+                        duration=step["duration"],
+                        temp_target=step["temp_target"],
+                    )
+                )
+        return result
+
+    def print_steps(self, long=False, pre=""):
+        print(self.formated_steps(long=long, pre=pre))
 
     @property
     def step_current_index(self):
@@ -163,15 +211,15 @@ class Profile(object):
     def duration(self):
         duration = 0
         for step in self.steps:
-            duration += step.duration
+            duration += step["duration"]
         return duration
 
     @property
     def max_temperatur(self):
-        max_temperatur = None
+        max_temperatur = 0
         for step in self.steps:
-            if max_temperatur < step.temp_target:
-                max_temperatur = step.temp_target
+            if max_temperatur < step["temp_target"]:
+                max_temperatur = step["temp_target"]
         return max_temperatur
 
     # helper
@@ -190,29 +238,42 @@ class Profile(object):
         self.runtime_start = time.monotonic()
 
     def step_next_check_and_do(self):
-        running = False
+        running = True
         if self.step_current and self.runtime > self.step_current["runtime_end"]:
-            if self.step_next():
-                running = True
-                print("reflowcycle: switched to {}".format(self.step_current["stage"]))
+            if self.step_next() is not None:
+                print(
+                    "{prev_line}{erase_line}"
+                    "reflowcycle: switched to {stage}\n\n"
+                    "{next_line}"
+                    "".format(
+                        stage=self.step_current["stage"],
+                        prev_line=terminal.control.cursor.previous_line(9),
+                        erase_line=terminal.control.erase_line(0),
+                        next_line=terminal.control.cursor.next_line(9),
+                    ),
+                    end="",
+                )
+            else:
+                running = False
         return running
 
     def temp_get_current_proportional_target(self):
         """get the temperature_target in proportion to the current runtime."""
-        temp_current = None
+        current_target = None
         if self.step_current:
             if self.step_current["duration"] == 0:
-                temp_current = self.step_current["temp_target"]
+                current_target = self.step_current["temp_target"]
             else:
                 step_runtime = self.runtime - self.step_current["runtime_start"]
-                # duration     = 100% = temp_target
-                # step_runtime =    x = temp_current
-                temp_current = (
-                    self.step_current["temp_target"]
-                    * step_runtime
-                    / self.step_current["duration"]
+                temp_dif = (
+                    self.step_current["temp_target"] - self.step_current["temp_start"]
                 )
-        return temp_current
+                # duration     = 100% = temp_target
+                # step_runtime =    x = current_target
+                current_target = (
+                    temp_dif * step_runtime / self.step_current["duration"]
+                ) + self.step_current["temp_start"]
+        return current_target
 
 
 ##########################################
