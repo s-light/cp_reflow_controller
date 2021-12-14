@@ -17,9 +17,9 @@ class State(object):
     @active.setter
     def active(self, value):
         if value:
-            self.enter()
+            self._enter()
         else:
-            self.leave()
+            self._leave()
 
     def __init__(self, name, enter=None, update=None, leave=None):
         super(State, self).__init__()
@@ -29,21 +29,21 @@ class State(object):
         self.update = update
         self.leave = leave
 
-    def enter(self):
+    def _enter(self):
         """enter state."""
         if not self._active:
             self._active = True
             if self.enter:
                 self.enter()
 
-    def leave(self):
+    def _leave(self):
         """leave state."""
         if self._active:
             self._active = False
             if self.leave:
                 self.leave()
 
-    def update(self):
+    def _update(self):
         """update state."""
         if self._active:
             if self.update:

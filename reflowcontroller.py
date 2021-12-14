@@ -44,7 +44,7 @@ class ReflowController(object):
         "hw": {
             "max31855_cs_pin": "D5",
             "heating_pin": "D9",
-            "auto_dim_display": 10,
+            "auto_dim_display": 1,
             "display_brightness": 0.1,
         },
         "colors": {
@@ -326,10 +326,11 @@ class ReflowController(object):
             "{profile_list}"
             "- 'calibrate'\n"
             "- 'start' reflow cycle\n"
-            "- 'stop' reflow cycle\n"
+            "- 'stop'  reflow cycle\n"
             "".format(
                 profile_list=profile_list,
-            )
+            ),
+            end="",
         )
 
     def check_input(self):
@@ -412,7 +413,9 @@ class ReflowController(object):
         if self.buttons.right.rose:
             print("Button right")
         if self.buttons.start.rose:
-            print("Button start")
+            # print("Button start")
+            if self.state_current.name == "standby":
+                self.switch_to_state("reflow_prepare")
         if self.buttons.select.rose:
             print("Button select")
 
@@ -428,8 +431,13 @@ class ReflowController(object):
         print("loop")
         if supervisor.runtime.serial_connected:
             self.print_help()
-        while True:
-            self.main_loop()
+        running = True
+        while running:
+            try:
+                self.main_loop()
+            except KeyboardInterrupt as e:
+                print("KeyboardInterrupt - Stop Program.", e)
+                running = False
 
 
 ##########################################

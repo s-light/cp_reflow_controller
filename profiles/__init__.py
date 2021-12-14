@@ -35,56 +35,56 @@ def load_all_submodules_and_instantiate_all_classes():
 
 
 ##########################################
-# functions
-
-
-##########################################
 # classes
 
 
 class Profile(object):
     """Name of Profile - Include Manufacture"""
 
-    # __name__ msut be the same as the class name
-    __name__ = "Profile"
-    title = """Manufacture - Product Name - Variant"""
-    title_short = "Manufacture - Product - Variant"
-    alloy = ("alloy name / description",)
-    melting_point = 0
-    reference = "url to manufacture datasheet"
-    # this profile steps contain the soldering profile
-    steps = [
-        {
-            "stage": "preheat",
-            "duration": 210,
-            "temp_target": 150,
-        },
-        {
-            "stage": "soak",
-            "duration": 90,
-            "temp_target": 200,
-        },
-        {
-            "stage": "reflow",
-            "duration": 40,
-            "temp_target": 245,
-        },
-        {
-            "stage": "cool",
-            "duration": 70,
-            "temp_target": 0,
-        },
-    ]
+    def config(self):
+        # __name__ msut be the same as the class name
+        self.__name__ = "Profile"
+        self.title = """Manufacture - Product Name - Variant"""
+        self.title_short = "Manufacture - Product - Variant"
+        self.alloy = ("alloy name / description",)
+        self.melting_point = 0
+        self.reference = "url to manufacture datasheet"
+        # this profile steps contain the soldering profile
+        self.steps = [
+            {
+                "stage": "preheat",
+                "duration": 210,
+                "temp_target": 150,
+            },
+            {
+                "stage": "soak",
+                "duration": 90,
+                "temp_target": 200,
+            },
+            {
+                "stage": "reflow",
+                "duration": 40,
+                "temp_target": 245,
+            },
+            {
+                "stage": "cool",
+                "duration": 70,
+                "temp_target": 0,
+            },
+        ]
 
     def __init__(self):
         """Init profile."""
+        self.config()
         self._step_current = None
         self._steps_init()
+        # print("Profile:", self.__name__)
+        # self.print_steps()
         self.runtime_start = -1
 
     @property
     def runtime(self):
-        return time.monotonic() - self.profile_selected.runtime_start
+        return time.monotonic() - self.runtime_start
 
     def _steps_init(self):
         self.steps.insert(
@@ -93,6 +93,7 @@ class Profile(object):
                 "stage": "start",
                 "duration": 0,
                 "temp_target": 0,
+                "runtime_start": 0,
                 "runtime_end": 0,
             },
         )
@@ -110,6 +111,25 @@ class Profile(object):
                 step["runtime_start"] = self.steps[index - 1]["runtime_end"]
                 step["runtime_end"] = sum
 
+    def print_steps(self):
+        for index, step in enumerate(self.steps):
+            print(
+                "step[{index}] '{stage}'\n"
+                # " stage '{}'\n"
+                " temp_target   {temp_target: >3}°C\n"
+                " duration      {duration: >3}s\n"
+                " runtime_start {runtime_start: >3}s\n"
+                " runtime_end   {runtime_end: >3}s\n"
+                "".format(
+                    index=index,
+                    stage=step["stage"],
+                    duration=step["duration"],
+                    temp_target=step["temp_target"],
+                    runtime_start=step["runtime_start"],
+                    runtime_end=step["runtime_end"],
+                )
+            )
+
     @property
     def step_current_index(self):
         return self._step_current_index
@@ -118,8 +138,7 @@ class Profile(object):
     def step_current(self):
         return self._step_current
 
-    @step_current.setter
-    def step_current(self, value):
+    def _step_current_setter(self, value):
         self._step_current_index = value
         if value is None:
             self._step_current = None
@@ -127,8 +146,13 @@ class Profile(object):
             self._step_current = self.steps[self._step_current_index]
         return self._step_current
 
+    @step_current.setter
+    def step_current(self, value):
+        self._step_current_setter(value)
+        return self._step_current
+
     def step_start(self):
-        self.step_current(0)
+        self._step_current_setter(0)
         return self.step_current
 
     def step_next(self):

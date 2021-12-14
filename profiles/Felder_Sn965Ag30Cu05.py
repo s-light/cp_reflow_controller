@@ -6,32 +6,33 @@ import profiles
 class Felder_ISO_Cream_Clear(profiles.Profile):
     """Felder ISO-Cream 'Clear' (no-clean)"""
 
-    # __name__ msut be the same as the class name
-    __name__ = "Felder_ISO_Cream_Clear"
-    title = "Felder ISO-Cream 'Clear' (no-clean)"
-    title_short = "Felder ISO-Cream"
-    alloy = "Sn96,5Ag3,0Cu0,5"
-    melting_point = 220
-    reference = "https://www.felder.de/files/felder/pdf/DE_23-Clear.pdf"
-    profile = [
-        {
-            "stage": "preheat",
-            "duration": 210,
-            "temp_target": 150,
-        },
-        {
-            "stage": "soak",
-            "duration": 90,
-            "temp_target": 200,
-        },
-        {
-            "stage": "reflow",
-            "duration": 40,
-            "temp_target": 245,
-        },
-        {
-            "stage": "cool",
-            "duration": 70,
-            "temp_target": 0,
-        },
-    ]
+    def config(self):
+        # __name__ msut be the same as the class name
+        self.__name__ = "Felder_ISO_Cream_Clear"
+        self.title = "Felder ISO-Cream 'Clear' (no-clean)"
+        self.title_short = "Felder ISO-Cream"
+        self.alloy = "Sn96,5Ag3,0Cu0,5"
+        self.melting_point = 220
+        self.reference = "https://www.felder.de/files/felder/pdf/DE_23-Clear.pdf"
+        self.steps = [
+            {
+                "stage": "preheat",
+                "duration": 210,
+                "temp_target": 150,
+            },
+            {
+                "stage": "soak",
+                "duration": 90,
+                "temp_target": 200,
+            },
+            {
+                "stage": "reflow",
+                "duration": 40,
+                "temp_target": 245,
+            },
+            {
+                "stage": "cool",
+                "duration": 70,
+                "temp_target": 0,
+            },
+        ]
