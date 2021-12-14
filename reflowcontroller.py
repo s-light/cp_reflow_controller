@@ -23,6 +23,9 @@ import adafruit_max31855
 
 from configdict import extend_deep
 
+# from ASCII_escape_code import colors, control, test_control
+import ASCII_escape_code as terminal
+
 from state import State
 
 import profiles as myprofiles
@@ -184,7 +187,7 @@ class ReflowController(object):
         self.state_current = self.states[state]
         self.state_current.active = True
         state_name_new = self.state_current.name
-        print("changed state from '{}' to '{}'".format(state_name_old, state_name_new))
+        print("changed state: '{}' -> '{}'".format(state_name_old, state_name_new))
         self.state_current.update()
 
     # standby
@@ -200,17 +203,47 @@ class ReflowController(object):
     # calibrate
     # def states_calibrate_enter(self):
     #     pass
-    #
-    # def states_calibrate_update(self):
-    #     pass
-    #
+
+    def states_calibrate_update(self):
+        print(
+            "{previous_line2}"
+            "{erase_line}stage:   '{stage}'\n"
+            "{erase_line}runtime:  {orange}{runtime: >6.2f}{reset}s\n"
+            "".format(
+                stage="test",
+                runtime=time.monotonic(),
+                orange=terminal.colors.fg.orange,
+                reset=terminal.colors.reset,
+                previous_line2=terminal.control.cursor.previous_line(2),
+                erase_line=terminal.control.erase_line(0),
+            ),
+            end="",
+        )
+        time.sleep(0.5)
+
     # def states_calibrate_leave(self):
     #     self.switch_to_state("standby")
 
-    # reflow_done
+    # reflow_prepare
+    def states_reflow_prepare_enter(self):
+        print("Do you really want to start the reflow cycle?")
+        print("selected profil:", self.profile_selected.title)
+        print("--> to start click 'START' button.")
+        print("--> to cancle click any ohter button.")
+
     def states_reflow_prepare_update(self):
         if self.buttons.start.rose:
             self.switch_to_state("reflow")
+        elif (
+            self.buttons.select.rose
+            or self.buttons.a.rose
+            or self.buttons.b.rose
+            or self.buttons.up.rose
+            or self.buttons.down.rose
+            or self.buttons.right.rose
+            or self.buttons.left.rose
+        ):
+            self.switch_to_state("standby")
 
     # reflow_done
     def states_reflow_done_update(self):
@@ -218,7 +251,7 @@ class ReflowController(object):
             self.switch_to_state("standby")
 
     def states_reflow_done_leave(self):
-        self.pixels_all((0, 0, 0))
+        self.pixels_all(self.colors["off"])
 
     def states_setup(self):
         self.state_current = {}
@@ -233,12 +266,12 @@ class ReflowController(object):
             "calibrate": State(
                 name="calibrate",
                 # enter=self.states_calibrate_enter,
-                # update=self.states_calibrate_update,
+                update=self.states_calibrate_update,
                 # leave=self.states_calibrate_leave,
             ),
             "reflow_prepare": State(
                 name="reflow_prepare",
-                # enter=self.states_reflow_prepare_enter,
+                enter=self.states_reflow_prepare_enter,
                 update=self.states_reflow_prepare_update,
                 # leave=self.states_reflow_prepare_leave,
             ),
@@ -282,13 +315,53 @@ class ReflowController(object):
         # maybe just as simple hysteresis check
         # with prelearned timing..
 
-        if self.profile_selected.step_next_check_and_do() is None:
-            # we reached the end of the reflow process
-            self.switch_to_state("reflow_done")
+        # print(
+        #     # runtime:9999s target:999°C current:999°C
+        #     "{previous_line4}"
+        #     "{erase_line}stage:     '{stage}'\n"
+        #     "{erase_line}runtime:{runtime: >7.2f}s\n"
+        #     "{erase_line}target:  {orange}{target: >6.2f}{reset}°C\n"
+        #     "{erase_line}current: {current: >6.2f}°C\n"
+        #     "".format(
+        #         stage=self.profile_selected.step_current["stage"],
+        #         runtime=self.profile_selected.runtime,
+        #         target=temp_target,
+        #         current=self.temperature,
+        #         orange=terminal.colors.fg.orange,
+        #         reset=terminal.colors.reset,
+        #         previous_line4=terminal.control.cursor.previous_line(4),
+        #         erase_line=terminal.control.erase_line(0),
+        #     ),
+        #     end="",
+        # )
+        if self.profile_selected.step_current:
+            print(
+                # runtime:9999s target:999°C current:999°C
+                "\n\n\n\n"
+                "stage: {stage: >9}\n"
+                "runtime:{runtime: >7.2f}s\n"
+                "target:  {orange}{target: >6.2f}{reset}°C\n"
+                "current: {current: >6.2f}°C\n"
+                "".format(
+                    stage=self.profile_selected.step_current["stage"],
+                    runtime=self.profile_selected.runtime,
+                    target=temp_target,
+                    current=self.temperature,
+                    orange=terminal.colors.fg.orange,
+                    reset=terminal.colors.reset,
+                ),
+                end="",
+            )
+            time.sleep(0.1)
+        step_check = self.profile_selected.step_next_check_and_do()
+        print("step_check", step_check)
+        # if self.profile_selected.step_next_check_and_do() is False:
+        #     # we reached the end of the reflow process
+        #     self.switch_to_state("reflow_done")
 
     def reflowcycle_finished(self):
         self.heating = False
-        self.pixels_all(self.color_done)
+        self.pixels_all(self.colors["done"])
 
     ##########################################
     # calibration functions
@@ -337,7 +410,8 @@ class ReflowController(object):
         """Check Input."""
         input_string = input()
         if "calibrate" in input_string:
-            self.calibrate()
+            # self.calibrate()
+            self.switch_to_state("calibrate")
         if "start" in input_string:
             self.menu_reflowcycle_start()
         if "stop" in input_string:
@@ -372,6 +446,68 @@ class ReflowController(object):
         pass
 
     ##########################################
+    # button UI
+
+    def handle_buttons_standby(self):
+        if self.buttons.a.rose:
+            self.buttons.a.update()
+            # print(colors.fg.blue, end="")
+            print("Button A")
+        if self.buttons.b.rose:
+            self.buttons.b.update()
+            # print(colors.fg.green, end="")
+            print("Button B")
+        if self.buttons.up.rose:
+            self.buttons.up.update()
+            print("Button up")
+            # print(control.cursor.previous_line("2"), end="")
+            # print("\033[1F", end="")
+        if self.buttons.down.rose:
+            self.buttons.down.update()
+            print("Button down")
+        if self.buttons.left.rose:
+            self.buttons.left.update()
+            print("Button left")
+            # print(control.erase_line("0"), end="")
+            # print("\033[K", end="")
+        if self.buttons.right.rose:
+            self.buttons.right.update()
+            print("Button right")
+
+            # test_control()
+        if self.buttons.start.rose:
+            self.buttons.start.update()
+            # print("Button start")
+            self.menu_reflowcycle_start()
+        if self.buttons.select.rose:
+            self.buttons.select.update()
+            print("Button select")
+            # print(colors.reset, end="")
+            # print(terminal.control.erase_display(), end="")
+
+    def handle_buttons_reflow(self):
+        if self.buttons.select.rose:
+            self.buttons.select.update()
+            self.menu_reflowcycle_stop()
+
+    def check_buttons(self):
+        self.buttons.update()
+
+        if self.state_current.name == "standby":
+            self.handle_buttons_standby()
+        # elif self.state_current.name == "calibrate":
+        #     self.handle_buttons_calibrate()
+        # elif self.state_current.name == "reflow_prepare":
+        #     self.handle_buttons_reflow_prepare()
+        elif self.state_current.name == "reflow":
+            self.handle_buttons_reflow()
+        # elif self.state_current.name == "reflow_done":
+        #     self.handle_buttons_reflow_done()
+        else:
+            # self.handle_buttons_calibrate()
+            pass
+
+    ##########################################
     # main handling
 
     def temperature_update(self):
@@ -397,27 +533,6 @@ class ReflowController(object):
                 self.temperature = temperature_temp
                 self.temperature_reference = temperature_reference_temp
                 print("Temperature: {:.02f}°C ".format(self.temperature))
-
-    def check_buttons(self):
-        self.buttons.update()
-        if self.buttons.a.rose:
-            print("Button A")
-        if self.buttons.b.rose:
-            print("Button B")
-        if self.buttons.up.rose:
-            print("Button up")
-        if self.buttons.down.rose:
-            print("Button down")
-        if self.buttons.left.rose:
-            print("Button left")
-        if self.buttons.right.rose:
-            print("Button right")
-        if self.buttons.start.rose:
-            # print("Button start")
-            if self.state_current.name == "standby":
-                self.switch_to_state("reflow_prepare")
-        if self.buttons.select.rose:
-            print("Button select")
 
     def main_loop(self):
         self.temperature_update()

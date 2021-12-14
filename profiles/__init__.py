@@ -138,28 +138,26 @@ class Profile(object):
     def step_current(self):
         return self._step_current
 
-    def _step_current_setter(self, value):
+    @step_current.setter
+    def step_current(self, value):
         self._step_current_index = value
         if value is None:
             self._step_current = None
         else:
             self._step_current = self.steps[self._step_current_index]
         return self._step_current
-
-    @step_current.setter
-    def step_current(self, value):
-        self._step_current_setter(value)
         return self._step_current
 
     def step_start(self):
-        self._step_current_setter(0)
+        self.step_current = 0
         return self.step_current
 
     def step_next(self):
         step = self.step_current_index + 1
         if step >= len(self.steps):
             step = None
-        return self.step_current(step)
+        self.step_current = step
+        return self.step_current
 
     @property
     def duration(self):
@@ -193,23 +191,27 @@ class Profile(object):
 
     def step_next_check_and_do(self):
         running = False
-        if self.runtime > self.step_current["runtime_end"]:
+        if self.step_current and self.runtime > self.step_current["runtime_end"]:
             if self.step_next():
                 running = True
+                print("reflowcycle: switched to {}".format(self.step_current["stage"]))
         return running
 
     def temp_get_current_proportional_target(self):
         """get the temperature_target in proportion to the current runtime."""
         temp_current = None
         if self.step_current:
-            step_runtime = self.runtime - self.step_current["runtime_start"]
-            # duration     = 100% = temp_target
-            # step_runtime =    x = temp_current
-            temp_current = (
-                self.step_current["temp_target"]
-                * step_runtime
-                / self.step_current["duration"]
-            )
+            if self.step_current["duration"] == 0:
+                temp_current = self.step_current["temp_target"]
+            else:
+                step_runtime = self.runtime - self.step_current["runtime_start"]
+                # duration     = 100% = temp_target
+                # step_runtime =    x = temp_current
+                temp_current = (
+                    self.step_current["temp_target"]
+                    * step_runtime
+                    / self.step_current["duration"]
+                )
         return temp_current
 
 
