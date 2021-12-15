@@ -233,9 +233,12 @@ class ReflowController(object):
         print("Do you really want to start the reflow cycle?")
         print("selected profil:")
         self.profile_selected.print_profile()
-        print("")
-        print("--> to start click 'START' button.")
-        print("--> to cancle click any ohter button.")
+
+        # for the small screen
+        print("selected profil:")
+        print(self.profile_selected.title)
+        print("run: 'START'")
+        print("cancle: any ohter button")
         self.pixels_all(self.colors["info"])
 
     def states_reflow_prepare_update(self):
@@ -256,7 +259,7 @@ class ReflowController(object):
     def states_reflow_done_enter(self):
         print("")
         print("reflow cycle done. ")
-        print("please confirm with click on 'START'")
+        print("please confirm: 'START'")
         print("")
 
     def states_reflow_done_update(self):
@@ -264,6 +267,7 @@ class ReflowController(object):
             self.switch_to_state("standby")
 
     def states_reflow_done_leave(self):
+        print("")
         self.pixels_all(self.colors["off"])
 
     def states_setup(self):
