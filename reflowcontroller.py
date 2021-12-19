@@ -106,7 +106,7 @@ class ReflowController(object):
     #     return self.profiles[name]
 
     def profile_get_next_name(self):
-        print("self.profile_selected.__name__", self.profile_selected.__name__)
+        # print("self.profile_selected.__name__", self.profile_selected.__name__)
         index_current = self.profiles_names.index(self.profile_selected.__name__)
         index_new = index_current + 1
         if index_new >= len(self.profiles_names):
@@ -115,6 +115,8 @@ class ReflowController(object):
 
     def profile_select_next(self):
         self.profile_selected = self.profiles[self.profile_get_next_name()]
+        # we need to reassing...
+        self.ui.profile_selected = self.profile_selected
 
     def load_config(self, filename="/config.json"):
         self.config = {}
