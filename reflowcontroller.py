@@ -14,6 +14,7 @@ HW: Adafruit PyBadge
 import json
 
 import time
+import random
 import board
 import digitalio
 import supervisor
@@ -154,6 +155,7 @@ class ReflowController(object):
         self._heating.direction = digitalio.Direction.OUTPUT
         self.temperature = None
         self.temperature_reference = None
+        self.temperature_changed = False
 
     def setup_ui(self):
         self.ui = ui.ReflowControllerUI(reflowcontroller=self)
@@ -219,76 +221,42 @@ class ReflowController(object):
         # handle heating with currently selected profile..
 
         # handle heating
-        temp_target = self.profile_selected.temp_get_current_proportional_target()
+        # temp_target = self.profile_selected.temp_current_proportional_target
+        temp_target = self.profile_selected.temp_current_proportional_target_get()
+
+        # fake temp
+        temp_current_fake = temp_target + random.randint(-10, 20)
+        # clamp to range
+        temp_current_fake = max(0, temp_current_fake)
+        temp_current_fake = min(self.profile_selected.max_temperatur, temp_current_fake)
+        self.temperature = temp_current_fake
+
         # self.heating = False
         # TODO: s-light: Implement heating control
         # maybe as PID
         # maybe just as simple hysteresis check
         # with prelearned timing..
 
-        if self.profile_selected.step_current:
-            print(
-                "{previous_line8}"
-                "\n\n\n\n"
-                "{erase_line}stage:     '{stage}'\n"
-                "{erase_line}runtime:{runtime: >7.2f}s\n"
-                "{erase_line}target:  {orange}{target: >6.2f}{reset}°C\n"
-                "{erase_line}current: {current: >6.2f}°C\n"
-                "".format(
-                    stage=self.profile_selected.step_current["stage"],
-                    runtime=self.profile_selected.runtime,
-                    target=temp_target,
-                    current=self.temperature,
-                    orange=terminal.colors.fg.orange,
-                    reset=terminal.colors.reset,
-                    previous_line8=terminal.control.cursor.previous_line(8),
-                    erase_line=terminal.control.erase_line(0),
-                ),
-                end="",
-            )
-            # print(
-            #     # runtime:9999s target:999°C current:999°C
-            #     "\n\n\n\n"
-            #     "stage: {stage: >9}\n"
-            #     "runtime:{runtime: >7.2f}s\n"
-            #     "target:  {orange}{target: >6.2f}{reset}°C\n"
-            #     "current: {current: >6.2f}°C\n"
-            #     "".format(
-            #         stage=self.profile_selected.step_current["stage"],
-            #         runtime=self.profile_selected.runtime,
-            #         target=temp_target,
-            #         current=self.temperature,
-            #         orange=terminal.colors.fg.orange,
-            #         reset=terminal.colors.reset,
-            #     ),
-            #     end="",
-            # )
-            # time.sleep(0.1)
+        if temp_target:
+            pass
+        else:
+            self.heating = False
 
-            # set pixel proportional
-            pixel_count = len(self.ui.pixels)
-            step_count = len(self.profile_selected.steps)
-            step_current_index = self.profile_selected.step_current_index
-            # pixel_count = 100% = steps_count
-            # pixel_max = x = steps_current_index
-            pixel_max = pixel_count * step_current_index / step_count
-            for index in range(pixel_count):
-                if index < pixel_max:
-                    self.pixels[index] = self.colors["info"]
-                else:
-                    self.pixels[index] = self.colors["off"]
+        self.ui.pixels_set_proportional(
+            self.profile_selected.step_current_index,
+            len(self.profile_selected.steps),
+        )
         profile_running = self.profile_selected.step_next_check_and_do()
         # print("profile_running", profile_running)
         if profile_running is False:
             # we reached the end of the reflow process
-            self.switch_to_state("reflow_done")
+            self.switch_to_state("standby")
         # if self.profile_selected.step_next_check_and_do() is False:
         #     # we reached the end of the reflow process
         #     self.switch_to_state("reflow_done")
 
     def reflow_finished(self):
         self.heating = False
-        self.pixels_all(self.colors["done"])
         self.ui.switch_to_state("reflow_done")
 
     ##########################################
@@ -354,7 +322,8 @@ class ReflowController(object):
             if temperature_temp != self.temperature:
                 self.temperature = temperature_temp
                 self.temperature_reference = temperature_reference_temp
-                print("Temperature: {:.02f}°C ".format(self.temperature))
+                self.temperature_changed = True
+                # print("Temperature: {:.02f}°C ".format(self.temperature))
 
     def main_loop(self):
         self.temperature_update()

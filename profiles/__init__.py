@@ -257,7 +257,9 @@ class Profile(object):
                 running = False
         return running
 
-    def temp_get_current_proportional_target(self):
+    # @property
+    # def temp_current_proportional_target(self):
+    def temp_current_proportional_target_get(self):
         """get the temperature_target in proportion to the current runtime."""
         current_target = None
         if self.step_current:

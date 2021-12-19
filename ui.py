@@ -133,6 +133,22 @@ class ReflowControllerUI(object):
         """
         return value + (-value) % round_to
 
+    def pixels_set_proportional(self, value, count, color_on=None, color_off=None):
+        if not color_on:
+            color_on = self.colors["info"]
+        if not color_off:
+            color_off = self.colors["off"]
+        # set pixel proportional
+        pixel_count = len(self.pixels)
+        # pixel_count = 100% = count
+        # pixel_max = x = value
+        pixel_max = pixel_count * value / count
+        for index in range(pixel_count):
+            if index < pixel_max:
+                self.pixels[index] = color_on
+            else:
+                self.pixels[index] = color_off
+
     ##########################################
     # state handling
 
@@ -168,6 +184,10 @@ class ReflowControllerUI(object):
         self.show_terminal()
 
     def states_standby_update(self):
+        # update display
+        if self.reflowcontroller.temperature_changed:
+            self.reflowcontroller.temperature_changed = False
+            print("Temperature: {:.02f}°C ".format(self.reflowcontroller.temperature))
         if self.buttons.a.rose:
             self.buttons.a.update()
             # print(colors.fg.blue, end="")
@@ -273,11 +293,17 @@ class ReflowControllerUI(object):
             self.my_plane.yrange[0],
             self.round_int_up(self.profile_selected.max_temperatur),
         )
-        self.display_update_intervall = int(
-            self.my_plane.xrange[1] / self.my_plane._width
-        )
+        # if self.my_plane.xrange[1] < self.my_plane._width:
+        #     pass
+        self.display_update_intervall = self.my_plane.xrange[1] / self.my_plane._width
+        if self.display_update_intervall >= 1.0:
+            self.display_update_intervall = round(self.display_update_intervall)
         self.last_display_update = 0
+        print("self.my_plane.xrange", self.my_plane.xrange)
+        print("self.my_plane.yrange", self.my_plane.yrange)
+        print("self.display_update_intervall", self.display_update_intervall)
 
+        self.my_plane.clear_plot()
         self.display.show(self.main_group)
         # TODO: s-light: show profile as background graph
         # graph_data = []
@@ -285,6 +311,59 @@ class ReflowControllerUI(object):
         #     point = (step.["duration"], step.["temp_target"])
         #     graph_data.append(point)
         self.reflowcontroller.switch_to_state("reflow")
+
+    def reflow_update_ui_display(self):
+        # print("display update.", self.profile_selected.runtime)
+        runtime = round(self.profile_selected.runtime)
+        if self.display_update_intervall < 1.0:
+            runtime = min(self.my_plane.yrange[1], self.profile_selected.runtime)
+        self.my_plane.update_line(
+            runtime,
+            self.reflowcontroller.temperature,
+        )
+
+    def reflow_update_ui_serial(self):
+        # update serial output
+        # temp_target = self.profile_selected.temp_current_proportional_target
+        temp_target = self.profile_selected.temp_current_proportional_target_get()
+        if temp_target:
+            print(
+                "{previous_line8}"
+                "\n\n\n\n"
+                "{erase_line}stage:     '{stage}'\n"
+                "{erase_line}runtime:{runtime: >7.2f}s\n"
+                "{erase_line}target:  {orange}{target: >6.2f}{reset}°C\n"
+                "{erase_line}current: {current: >6.2f}°C\n"
+                "".format(
+                    stage=self.profile_selected.step_current["stage"],
+                    runtime=self.profile_selected.runtime,
+                    target=temp_target,
+                    current=self.reflowcontroller.temperature,
+                    orange=terminal.colors.fg.orange,
+                    reset=terminal.colors.reset,
+                    previous_line8=terminal.control.cursor.previous_line(8),
+                    erase_line=terminal.control.erase_line(0),
+                ),
+                end="",
+            )
+            # print(
+            #     # runtime:9999s target:999°C current:999°C
+            #     "\n\n\n\n"
+            #     "stage: {stage: >9}\n"
+            #     "runtime:{runtime: >7.2f}s\n"
+            #     "target:  {orange}{target: >6.2f}{reset}°C\n"
+            #     "current: {current: >6.2f}°C\n"
+            #     "".format(
+            #         stage=self.profile_selected.step_current["stage"],
+            #         runtime=self.profile_selected.runtime,
+            #         target=temp_target,
+            #         current=self.reflowcontroller.temperature,
+            #         orange=terminal.colors.fg.orange,
+            #         reset=terminal.colors.reset,
+            #     ),
+            #     end="",
+            # )
+            pass
 
     def states_reflow_running_update(self):
         if self.buttons.select.rose:
@@ -295,13 +374,12 @@ class ReflowControllerUI(object):
         duration = self.profile_selected.runtime - self.last_display_update
         if duration > self.display_update_intervall:
             self.last_display_update = self.profile_selected.runtime
-            self.my_plane.update_line(
-                round(self.profile_selected.runtime),
-                self.reflowcontroller.temperature,
-            )
+            self.reflow_update_ui_display()
+            self.reflow_update_ui_serial()
 
     # reflow_done
     def states_reflow_done_enter(self):
+        self.pixels_all(self.colors["done"])
         print("")
         print("reflow cycle done. ")
         print("please confirm: 'START'")
@@ -309,6 +387,7 @@ class ReflowControllerUI(object):
 
     def states_reflow_done_update(self):
         if self.buttons.start.rose:
+            self.buttons.start.update()
             self.switch_to_state("standby")
 
     def states_reflow_done_leave(self):
