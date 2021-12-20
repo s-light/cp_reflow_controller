@@ -180,6 +180,35 @@ class ReflowControllerUI(object):
         else:
             self.pixels[4] = self.config["colors"]["off"]
 
+    def print_temperature(self):
+        if (
+            self.reflowcontroller.temperature
+            and self.reflowcontroller.temperature_reference
+        ):
+            print(
+                "temp: {:.02f}°C"
+                # " (ref: {:.02f}°C)"
+                "".format(
+                    self.reflowcontroller.temperature,
+                    # self.reflowcontroller.temperature_reference,
+                ),
+                # end="",
+            )
+        else:
+            print("temp: not available")
+
+    def print_warning(self, message, error):
+        print(
+            "{message}"
+            "{color}{error}{reset}"
+            "".format(
+                message=message,
+                error=error,
+                color=terminal.colors.fg.orange,
+                reset=terminal.colors.reset,
+            )
+        )
+
     ##########################################
     # state handling
 
@@ -273,15 +302,7 @@ class ReflowControllerUI(object):
         if self.reflowcontroller.temperature_changed:
             self.reflowcontroller.temperature_changed = False
             # print("Temperature: {:.02f}°C ".format(self.reflowcontroller.temperature))
-            print(
-                "temperature: {:.02f}°C"
-                " (ref: {:.02f}°C)"
-                "".format(
-                    self.reflowcontroller.temperature,
-                    self.reflowcontroller.temperature_reference,
-                ),
-                # end="",
-            )
+            self.print_temperature()
         if self.buttons.a.rose:
             self.buttons.a.update()
             self.switch_to_state("calibration_prepare")
@@ -441,7 +462,7 @@ class ReflowControllerUI(object):
     def states_reflow_running_enter(self):
         self.prepare_display_update()
         print("\n" * self.config["display"]["serial"]["lines_spacing_above"])
-        self.my_plane.clear_plot()
+        self.my_plane.clear_lines()
         self.display.show(self.main_group)
         # TODO: s-light: show profile as background graph
         # graph_data = []
@@ -455,7 +476,7 @@ class ReflowControllerUI(object):
         runtime = round(self.profile_selected.runtime)
         if self.display_update_intervall < 1.0:
             runtime = min(self.my_plane.xrange[1] * 1.0, self.profile_selected.runtime)
-        self.my_plane.update_line(
+        self.my_plane.add_line(
             runtime,
             self.reflowcontroller.temperature,
         )
@@ -564,6 +585,7 @@ class ReflowControllerUI(object):
             ),
             end="",
         )
+        self.print_temperature()
 
     def check_input(self):
         """Check Input."""

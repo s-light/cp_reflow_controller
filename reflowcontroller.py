@@ -177,9 +177,12 @@ class ReflowController(object):
         self.temperature = None
         self.temperature_reference = None
         self.temperature_changed = False
+        self.temperature_change_last = False
         self.temperature_difference = None
         self.temp_current_proportional_target = None
+        self.temperature_list = []
 
+        self.temperature_update()
         # A6 is connected to meassure battery voltage
         # analogio.AnalogIn(board.A6)
 
@@ -341,62 +344,87 @@ class ReflowController(object):
         else:
             self.temperature_difference = None
 
+    def temperature_filter_update(self, temperature):
+        self.temperature_list.append(temperature)
+        if len(self.temperature_list) > 4:
+            del self.temperature_list[0]
+        # diff = max(self.temperature_list) - min(self.temperature_list)
+        average = sum(self.temperature_list) / len(self.temperature_list)
+        return average
+        # return diff, average
+
+    def temperature_update_on_change(self, temperature_temp):
+        # temp_average = self.temperature_filter_update(temperature_temp)
+        # temp_diff, temp_average = self.temperature_filter_update(temperature_temp)
+        # print(
+        #     "temp_diff:    {:.02f}°C \n"
+        #     "temp_average: {:.02f}°C \n"
+        #     "temperature:  {}°C \n"
+        #     "".format(
+        #         temp_diff,
+        #         temp_average,
+        #         self.temperature,
+        #     ),
+        #     # end="",
+        # )
+        # if temp_average != self.temperature:
+        #     self.temperature = temp_average
+        if temperature_temp != self.temperature:
+            self.temperature = temperature_temp
+            temp_diff = abs(self.temperature_change_last - self.temperature)
+            if temp_diff >= 0.3:
+                # print(
+                #     "temp_diff:    {:.02f}°C \n"
+                #     "temperature_change_last:  {:.02f}°C \n"
+                #     "temp_average: {:.02f}°C \n"
+                #     "temperature:  {:.02f}°C \n"
+                #     "".format(
+                #         temp_diff,
+                #         self.temperature_change_last,
+                #         temp_average,
+                #         self.temperature,
+                #     ),
+                #     # end="",
+                # )
+                self.temperature_change_last = self.temperature
+                self.temperature_changed = temp_diff
+            else:
+                self.temperature_changed = False
+        else:
+            self.temperature_changed = False
+
     def temperature_update(self):
         try:
             temperature_temp = self.max31855.temperature
             temperature_reference_temp = self.max31855.reference_temperature
         except RuntimeError as e:
-            print("temperature_update error:\n  ", e)
+            self.ui.print_warning("temperature_update reading sensor failed: ", e)
+
             self.temperature = None
             self.temperature_reference = None
             self.temp_current_proportional_target = None
             self.temperature_difference = None
             self.temperature_changed = False
-            if "short circuit to ground" in e:
+            e_message = e.args[0]
+            if "short circuit to ground" in e_message:
                 pass
-            elif "short circuit to power" in e:
+            elif "short circuit to power" in e_message:
                 pass
-            elif "faulty reading" in e:
+            elif "faulty reading" in e_message:
                 pass
-            elif "thermocouple not connected" in e:
+            elif "thermocouple not connected" in e_message:
                 pass
             else:
                 raise e
         else:
+            self.temperature_reference = temperature_reference_temp
+            self.temperature_update_on_change(temperature_temp)
+
             if self.profile_selected:
                 # temp_target = self.profile_selected.temp_current_proportional_target
                 self.temp_current_proportional_target = (
                     self.profile_selected.temp_current_proportional_target_get()
                 )
-
-            # print(
-            #     "temperature_temp:           {:.02f}°C \n"
-            #     # "temperature:                {:.02f}°C \n"
-            #     "temperature_reference_temp: {:.02f}°C \n"
-            #     # "temperature_reference:      {:.02f}°C \n"
-            #     "".format(
-            #         temperature_temp,
-            #         # self.temperature,
-            #         temperature_reference_temp,
-            #         # self.temperature_reference,
-            #     ),
-            #     end="",
-            # )
-            if temperature_temp != self.temperature:
-                temperature_old = self.temperature
-                self.temperature = temperature_temp
-                self.temperature_reference = temperature_reference_temp
-                if temperature_old:
-                    temperature_change_diff = temperature_old - self.temperature
-                else:
-                    temperature_change_diff = 0
-                # print("temp_dif: {:.02f}°C ".format(temperature_change_diff))
-                if abs(temperature_change_diff) > 0.3:
-                    self.temperature_changed = temperature_change_diff
-                else:
-                    self.temperature_changed = False
-            else:
-                self.temperature_changed = False
 
             if self.temp_current_proportional_target:
                 self.temperature_difference = (
