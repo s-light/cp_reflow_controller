@@ -172,6 +172,8 @@ class ReflowController(object):
         self.temperature = None
         self.temperature_reference = None
         self.temperature_changed = False
+        self.temperature_difference = None
+        self.temp_current_proportional_target = None
 
     def setup_ui(self):
         self.ui = ui.ReflowControllerUI(reflowcontroller=self)
@@ -226,6 +228,40 @@ class ReflowController(object):
         pass
 
     ##########################################
+    # heating managment
+
+    def handle_heating(self):
+        """Handle heating."""
+        # temp_target = self.profile_selected.temp_current_proportional_target
+        self.temp_current_proportional_target = (
+            self.profile_selected.temp_current_proportional_target_get()
+        )
+
+        # fake temp
+        temp_current_fake = self.temp_current_proportional_target + random.randint(
+            -10, 20
+        )
+        # clamp to range
+        temp_current_fake = max(0, temp_current_fake)
+        temp_current_fake = min(self.profile_selected.max_temperatur, temp_current_fake)
+        self.temperature = temp_current_fake
+
+        self.temperature_difference = (
+            self.temp_current_proportional_target - self.temperature
+        )
+
+        # self.heating = False
+        # TODO: s-light: Implement heating control
+        # maybe as PID
+        # maybe just as simple hysteresis check
+        # with prelearned timing..
+
+        if self.temp_current_proportional_target:
+            pass
+        else:
+            self.heating = False
+
+    ##########################################
     # reflow
 
     # handling actuall reflow process
@@ -235,33 +271,8 @@ class ReflowController(object):
 
     def reflow_update(self):
         # handle heating with currently selected profile..
+        self.handle_heating()
 
-        # handle heating
-        # temp_target = self.profile_selected.temp_current_proportional_target
-        temp_target = self.profile_selected.temp_current_proportional_target_get()
-
-        # fake temp
-        temp_current_fake = temp_target + random.randint(-10, 20)
-        # clamp to range
-        temp_current_fake = max(0, temp_current_fake)
-        temp_current_fake = min(self.profile_selected.max_temperatur, temp_current_fake)
-        self.temperature = temp_current_fake
-
-        # self.heating = False
-        # TODO: s-light: Implement heating control
-        # maybe as PID
-        # maybe just as simple hysteresis check
-        # with prelearned timing..
-
-        if temp_target:
-            pass
-        else:
-            self.heating = False
-
-        self.ui.pixels_set_proportional(
-            self.profile_selected.step_current_index,
-            len(self.profile_selected.steps),
-        )
         profile_running = self.profile_selected.step_next_check_and_do()
         # print("profile_running", profile_running)
         if profile_running is False:

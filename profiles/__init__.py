@@ -237,7 +237,7 @@ class Profile(object):
         self.step_start()
         self.runtime_start = time.monotonic()
 
-    def step_next_check_and_do(self):
+    def step_next_check_and_do(self, lines_move=17):
         running = True
         if self.step_current and self.runtime > self.step_current["runtime_end"]:
             if self.step_next() is not None:
@@ -247,12 +247,29 @@ class Profile(object):
                     "{next_line}"
                     "".format(
                         stage=self.step_current["stage"],
-                        prev_line=terminal.control.cursor.previous_line(9),
+                        prev_line=terminal.control.cursor.previous_line(
+                            lines_move - (self.step_current_index + 1)
+                        ),
                         erase_line=terminal.control.erase_line(0),
-                        next_line=terminal.control.cursor.next_line(9),
+                        next_line=terminal.control.cursor.next_line(lines_move),
                     ),
                     end="",
                 )
+                self.step_current_index
+                # print(
+                #     # "{prev_line}{erase_line}"
+                #     "reflowcycle: switched to {stage}\n\n"
+                #     "{next_line}"
+                #     "{space_after}"
+                #     "".format(
+                #         stage=self.step_current["stage"],
+                #         prev_line=terminal.control.cursor.previous_line(5),
+                #         erase_line=terminal.control.erase_line(0),
+                #         next_line=terminal.control.cursor.next_line(9),
+                #         space_after="\n" * 5,
+                #     ),
+                #     end="",
+                # )
             else:
                 running = False
         return running

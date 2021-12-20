@@ -60,6 +60,9 @@ class ReflowControllerUI(object):
                 "blue_dark": 0x000010,
                 # "blue_dark": 0x000010,
             },
+            "serial": {
+                "lines_spacing_above": 15,
+            },
         },
         "colors": {
             "off": (0, 0, 0),
@@ -272,16 +275,12 @@ class ReflowControllerUI(object):
         if self.buttons.up.rose:
             self.buttons.up.update()
             print("Button up")
-            # print(control.cursor.previous_line("2"), end="")
-            # print("\033[1F", end="")
         if self.buttons.down.rose:
             self.buttons.down.update()
             print("Button down")
         if self.buttons.left.rose:
             self.buttons.left.update()
             print("Button left")
-            # print(control.erase_line("0"), end="")
-            # print("\033[K", end="")
         if self.buttons.right.rose:
             self.buttons.right.update()
             print("Button right")
@@ -296,8 +295,6 @@ class ReflowControllerUI(object):
             # print("Button select")
             self.reflowcontroller.profile_select_next()
             self.print_help()
-            # print(colors.reset, end="")
-            # print(terminal.control.erase_display(), end="")
 
     def states_standby_leave(self):
         pass
@@ -409,7 +406,7 @@ class ReflowControllerUI(object):
 
     def states_reflow_running_enter(self):
         self.prepare_display_update()
-
+        print("\n" * self.config["display"]["serial"]["lines_spacing_above"])
         self.my_plane.clear_plot()
         self.display.show(self.main_group)
         # TODO: s-light: show profile as background graph
@@ -432,35 +429,39 @@ class ReflowControllerUI(object):
     def reflow_update_ui_serial(self, replace=True):
         # update serial output
         # temp_target = self.profile_selected.temp_current_proportional_target
-        temp_target = self.profile_selected.temp_current_proportional_target_get()
+        temp_target = self.reflowcontroller.temp_current_proportional_target
         if temp_target:
-            text = (
-                # runtime:9999s target:999°C current:999°C
-                "\n\n\n\n"
-                "stage: {stage: >9}\n"
-                "runtime:{runtime: >7.2f}s\n"
-                "target:  {orange}{target: >6.2f}{reset}°C\n"
-                "current: {current: >6.2f}°C\n"
-                ""
-            )
+            lines_spacing_above = self.config["display"]["serial"][
+                "lines_spacing_above"
+            ]
+            text = ""
+            lines = [
+                "stage:     '{stage}'\n",
+                "runtime:{runtime: >7.2f}s\n",
+                "target:  {orange}{target: >6.2f}{reset}°C\n",
+                "current: {current: >6.2f}°C\n",
+                "diff:    {diff: >6.2f}°C\n",
+            ]
             if replace:
-                text = (
-                    "{previous_line8}"
-                    "\n\n\n\n"
-                    "{erase_line}stage:     '{stage}'\n"
-                    "{erase_line}runtime:{runtime: >7.2f}s\n"
-                    "{erase_line}target:  {orange}{target: >6.2f}{reset}°C\n"
-                    "{erase_line}current: {current: >6.2f}°C\n"
-                )
+                for line in lines:
+                    text += "{erase_line}" + line
+            else:
+                text = lines.join("")
+            text = ("\n" * lines_spacing_above) + text
+            if replace:
+                text = "{move_to_previous_lines}" + text
             print(
                 text.format(
                     stage=self.profile_selected.step_current["stage"],
                     runtime=self.profile_selected.runtime,
                     target=temp_target,
                     current=self.reflowcontroller.temperature,
+                    diff=self.reflowcontroller.temperature_difference,
                     orange=terminal.colors.fg.orange,
                     reset=terminal.colors.reset,
-                    previous_line8=terminal.control.cursor.previous_line(8),
+                    move_to_previous_lines=terminal.control.cursor.previous_line(
+                        len(lines) + lines_spacing_above
+                    ),
                     erase_line=terminal.control.erase_line(0),
                 ),
                 end="",
@@ -478,6 +479,10 @@ class ReflowControllerUI(object):
             self.reflow_update_ui_display()
             self.reflow_update_ui_serial()
             # self.reflow_update_ui_serial(replace=False)
+            self.pixels_set_proportional(
+                self.profile_selected.step_current_index,
+                len(self.profile_selected.steps),
+            )
 
     ####################
     # reflow_done
