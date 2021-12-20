@@ -15,17 +15,13 @@ import json
 
 import time
 import random
+import gc
 import board
 import digitalio
-import supervisor
-from adafruit_pybadger import pybadger
-from buttons import PyBadgeButtons
+
 import adafruit_max31855
 
 from configdict import extend_deep
-
-# from ASCII_escape_code import colors, control, test_control
-import ASCII_escape_code as terminal
 
 from state import State
 
@@ -120,7 +116,13 @@ class ReflowController(object):
 
     def profile_get_next_name(self):
         # print("self.profile_selected.__name__", self.profile_selected.__name__)
-        index_current = self.profiles_names.index(self.profile_selected.__name__)
+        try:
+            index_current = self.profiles_names.index(self.profile_selected.__name__)
+        except ValueError as e:
+            if "object not in sequence" in e.msg:
+                index_current = 99
+            else:
+                raise e
         index_new = index_current + 1
         if index_new >= len(self.profiles_names):
             index_new = 0
@@ -159,7 +161,10 @@ class ReflowController(object):
 
     @heating.setter
     def heating(self, value):
-        self._heating.value = value
+        if self._heating.value != value:
+            self._heating.value = value
+            # something changed!
+            self.ui.show_heater_state(value)
         return self._heating.value
 
     def setup_hw(self):
@@ -204,9 +209,9 @@ class ReflowController(object):
             ),
             "calibrate": State(
                 name="calibrate",
-                enter=self.calibrate_enter,
+                enter=self.calibrate_start,
                 update=self.calibrate_update,
-                leave=self.calibrate_leave,
+                leave=self.calibrate_finished,
             ),
             "reflow": State(
                 name="reflow",
@@ -232,31 +237,19 @@ class ReflowController(object):
 
     def handle_heating(self):
         """Handle heating."""
-        # temp_target = self.profile_selected.temp_current_proportional_target
-        self.temp_current_proportional_target = (
-            self.profile_selected.temp_current_proportional_target_get()
-        )
-
-        # fake temp
-        temp_current_fake = self.temp_current_proportional_target + random.randint(
-            -10, 20
-        )
-        # clamp to range
-        temp_current_fake = max(0, temp_current_fake)
-        temp_current_fake = min(self.profile_selected.max_temperatur, temp_current_fake)
-        self.temperature = temp_current_fake
-
-        self.temperature_difference = (
-            self.temp_current_proportional_target - self.temperature
-        )
-
-        # self.heating = False
-        # TODO: s-light: Implement heating control
-        # maybe as PID
-        # maybe just as simple hysteresis check
-        # with prelearned timing..
-
-        if self.temp_current_proportional_target:
+        if self.temperature and self.temp_current_proportional_target:
+            # temp = self.temperature
+            diff = self.temperature_difference
+            # target = self.temp_current_proportional_target
+            hysteresis = 2
+            if diff > hysteresis:
+                self.heating = True
+            else:
+                self.heating = False
+            # TODO: s-light: Implement heating control
+            # maybe as PID
+            # maybe just as simple hysteresis check
+            # with prelearned timing..
             pass
         else:
             self.heating = False
@@ -266,7 +259,6 @@ class ReflowController(object):
 
     # handling actuall reflow process
     def reflow_start(self):
-        print("\n" * 8)
         self.profile_selected.start()
 
     def reflow_update(self):
@@ -301,45 +293,85 @@ class ReflowController(object):
             time.sleep(0.8)
 
     # calibrate
-    def calibrate_enter(self):
-        pass
+    def calibrate_start(self):
+        self.profile_selected.start()
 
     def calibrate_update(self):
         # TODO: s-light: implement calibration routine
-        pass
+        self.reflow_update()
 
-    def calibrate_leave(self):
+    def calibrate_finished(self):
         self.heating = False
+        self.ui.switch_to_state("calibration_done")
 
     ##########################################
     # main handling
 
     def temperature_update(self):
-        try:
-            temperature_temp = self.max31855.temperature
-            temperature_reference_temp = self.max31855.reference_temperature
-        except RuntimeError as e:
-            self.temperature = None
-            self.temperature_reference = None
-            print(e)
-            if "short circuit to ground" in e:
-                pass
-            elif "short circuit to power" in e:
-                pass
-            elif "faulty reading" in e:
-                pass
-            elif "thermocouple not connected" in e:
-                pass
-            else:
-                raise e
+        self.temperature = None
+        self.temperature_reference = None
+        self.temp_current_proportional_target = None
+        self.temperature_difference = None
+        self.temperature_changed = False
+        # try:
+        #     temperature_temp = self.max31855.temperature
+        #     temperature_reference_temp = self.max31855.reference_temperature
+        # except RuntimeError as e:
+        #     print(e)
+        #     if "short circuit to ground" in e:
+        #         pass
+        #     elif "short circuit to power" in e:
+        #         pass
+        #     elif "faulty reading" in e:
+        #         pass
+        #     elif "thermocouple not connected" in e:
+        #         pass
+        #     else:
+        #         raise e
+        # else:
+        #     if self.profile_selected:
+        #         # temp_target = self.profile_selected.temp_current_proportional_target
+        #         self.temp_current_proportional_target = (
+        #             self.profile_selected.temp_current_proportional_target_get()
+        #         )
+        #
+        #     if temperature_temp != self.temperature:
+        #         self.temperature = temperature_temp
+        #         self.temperature_reference = temperature_reference_temp
+        #         self.temperature_changed = True
+        #         # print("Temperature: {:.02f}°C ".format(self.temperature))
+        #
+        #     if self.temp_current_proportional_target:
+        #         self.temperature_difference = (
+        #             self.temp_current_proportional_target - self.temperature
+        #         )
+
+        # fake temp
+        # temp_target = self.profile_selected.temp_current_proportional_target
+        self.temp_current_proportional_target = (
+            self.profile_selected.temp_current_proportional_target_get()
+        )
+        if self.temp_current_proportional_target:
+            temp_current_fake = self.temp_current_proportional_target + random.randint(
+                -10, 20
+            )
         else:
-            if temperature_temp != self.temperature:
-                self.temperature = temperature_temp
-                self.temperature_reference = temperature_reference_temp
-                self.temperature_changed = True
-                # print("Temperature: {:.02f}°C ".format(self.temperature))
+            temp_current_fake = 0
+        # clamp to range
+        temp_current_fake = max(0, temp_current_fake)
+        temp_current_fake = min(self.profile_selected.max_temperatur, temp_current_fake)
+        if temp_current_fake != self.temperature:
+            self.temperature = temp_current_fake
+            self.temperature_reference = 20
+            # self.temperature_changed = True
+
+        if self.temp_current_proportional_target:
+            self.temperature_difference = (
+                self.temp_current_proportional_target - self.temperature
+            )
 
     def main_loop(self):
+        gc.collect()
         self.temperature_update()
         self.state_current.update()
         self.ui.update()

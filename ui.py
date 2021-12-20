@@ -66,6 +66,7 @@ class ReflowControllerUI(object):
         },
         "colors": {
             "off": (0, 0, 0),
+            "on": (2, 0, 1),
             # "done": (50, 255, 0),
             # "warn": (255, 255, 0),
             # "error": (255, 0, 0),
@@ -137,20 +138,21 @@ class ReflowControllerUI(object):
         return value + (-value) % round_to
 
     def pixels_set_proportional(self, value, count, color_on=None, color_off=None):
-        if not color_on:
-            color_on = self.colors["info"]
-        if not color_off:
-            color_off = self.colors["off"]
-        # set pixel proportional
-        pixel_count = len(self.pixels)
-        # pixel_count = 100% = count
-        # pixel_max = x = value
-        pixel_max = pixel_count * value / count
-        for index in range(pixel_count):
-            if index < pixel_max:
-                self.pixels[index] = color_on
-            else:
-                self.pixels[index] = color_off
+        if value and count:
+            if not color_on:
+                color_on = self.colors["info"]
+            if not color_off:
+                color_off = self.colors["off"]
+            # set pixel proportional
+            pixel_count = len(self.pixels)
+            # pixel_count = 100% = count
+            # pixel_max = x = value
+            pixel_max = pixel_count * value / count
+            for index in range(pixel_count):
+                if index < pixel_max:
+                    self.pixels[index] = color_on
+                else:
+                    self.pixels[index] = color_off
 
     def prepare_display_update(self):
         # prepare display update timing
@@ -171,6 +173,12 @@ class ReflowControllerUI(object):
         print("self.my_plane.xrange", self.my_plane.xrange)
         print("self.my_plane.yrange", self.my_plane.yrange)
         print("self.display_update_intervall", self.display_update_intervall)
+
+    def show_heater_state(self, value):
+        if value:
+            self.pixels[4] = self.config["colors"]["on"]
+        else:
+            self.pixels[4] = self.config["colors"]["off"]
 
     ##########################################
     # state handling
@@ -338,11 +346,28 @@ class ReflowControllerUI(object):
 
     def states_calibration_running_enter(self):
         self.prepare_display_update()
+        print("\n" * self.config["display"]["serial"]["lines_spacing_above"])
         self.reflowcontroller.switch_to_state("calibrate")
-        print("\n" * 10)
 
     def states_calibration_running_update(self):
+        # print("states_calibration_running_update")
         self.states_reflow_running_update()
+        # if self.buttons.select.rose:
+        #     self.buttons.select.update()
+        #     self.switch_to_state("standby")
+        # # update display content
+        # # only add new point every second..
+        # duration = self.profile_selected.runtime - self.last_display_update
+        # if duration > self.display_update_intervall:
+        #     self.last_display_update = self.profile_selected.runtime
+        #     print("display update")
+        #     # self.reflow_update_ui_display()
+        #     self.reflow_update_ui_serial()
+        #     # self.reflow_update_ui_serial(replace=False)
+        #     self.pixels_set_proportional(
+        #         self.profile_selected.step_current_index,
+        #         len(self.profile_selected.steps),
+        #     )
 
     # def states_calibration_running_leave(self):
     #     self.switch_to_state("standby")

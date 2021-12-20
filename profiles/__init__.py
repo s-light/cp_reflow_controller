@@ -89,6 +89,7 @@ class Profile(object):
         return time.monotonic() - self.runtime_start
 
     def _steps_init(self):
+        self._step_current_index = 0
         self.steps.insert(
             0,  # index
             {
