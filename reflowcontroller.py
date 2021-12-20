@@ -45,7 +45,7 @@ class ReflowController(object):
         "calibration": {"temperature": 30, "duration": 37},
         "hw": {
             "max31855_cs_pin": "D4",
-            "heating_pin": "D9",
+            "heating_pin": "D12",
         },
         # all sub defaults for the UI are defined there.
     }
@@ -161,10 +161,13 @@ class ReflowController(object):
 
     @heating.setter
     def heating(self, value):
+        # invert value
+        value = not value
         if self._heating.value != value:
             self._heating.value = value
             # something changed!
-            self.ui.show_heater_state(value)
+            if hasattr(self, "ui"):
+                self.ui.show_heater_state(value)
         return self._heating.value
 
     def setup_hw(self):
@@ -174,6 +177,7 @@ class ReflowController(object):
 
         self._heating = digitalio.DigitalInOut(self.get_pin("heating_pin"))
         self._heating.direction = digitalio.Direction.OUTPUT
+        self.heating = False
         self.temperature = None
         self.temperature_reference = None
         self.temperature_changed = False
@@ -394,17 +398,19 @@ class ReflowController(object):
             self.temperature_changed = False
 
     def temperature_update(self):
+        self.temperature_read_error = None
         try:
             temperature_temp = self.max31855.temperature
             temperature_reference_temp = self.max31855.reference_temperature
         except RuntimeError as e:
             self.ui.print_warning("temperature_update reading sensor failed: ", e)
 
-            self.temperature = None
-            self.temperature_reference = None
+            # self.temperature = None
+            # self.temperature_reference = None
             self.temp_current_proportional_target = None
             self.temperature_difference = None
             self.temperature_changed = False
+            self.temperature_read_error = e
             e_message = e.args[0]
             if "short circuit to ground" in e_message:
                 pass
