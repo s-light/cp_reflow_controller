@@ -272,7 +272,16 @@ class ReflowControllerUI(object):
         # update display
         if self.reflowcontroller.temperature_changed:
             self.reflowcontroller.temperature_changed = False
-            print("Temperature: {:.02f}°C ".format(self.reflowcontroller.temperature))
+            # print("Temperature: {:.02f}°C ".format(self.reflowcontroller.temperature))
+            print(
+                "temperature: {:.02f}°C"
+                " (ref: {:.02f}°C)"
+                "".format(
+                    self.reflowcontroller.temperature,
+                    self.reflowcontroller.temperature_reference,
+                ),
+                # end="",
+            )
         if self.buttons.a.rose:
             self.buttons.a.update()
             self.switch_to_state("calibration_prepare")

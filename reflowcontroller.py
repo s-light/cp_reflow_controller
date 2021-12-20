@@ -44,7 +44,7 @@ class ReflowController(object):
         "profile": "?",
         "calibration": {"temperature": 30, "duration": 37},
         "hw": {
-            "max31855_cs_pin": "D5",
+            "max31855_cs_pin": "D4",
             "heating_pin": "D9",
         },
         # all sub defaults for the UI are defined there.
@@ -180,6 +180,9 @@ class ReflowController(object):
         self.temperature_difference = None
         self.temp_current_proportional_target = None
 
+        # A6 is connected to meassure battery voltage
+        # analogio.AnalogIn(board.A6)
+
     def setup_ui(self):
         self.ui = ui.ReflowControllerUI(reflowcontroller=self)
 
@@ -241,15 +244,16 @@ class ReflowController(object):
             # temp = self.temperature
             diff = self.temperature_difference
             # target = self.temp_current_proportional_target
+
+            # TODO: s-light: Implement heating control
+            # maybe as PID
+            # maybe just as simple hysteresis check
+            # with prelearned timing..
             hysteresis = 2
             if diff > hysteresis:
                 self.heating = True
             else:
                 self.heating = False
-            # TODO: s-light: Implement heating control
-            # maybe as PID
-            # maybe just as simple hysteresis check
-            # with prelearned timing..
             pass
         else:
             self.heating = False
@@ -307,45 +311,7 @@ class ReflowController(object):
     ##########################################
     # main handling
 
-    def temperature_update(self):
-        self.temperature = None
-        self.temperature_reference = None
-        self.temp_current_proportional_target = None
-        self.temperature_difference = None
-        self.temperature_changed = False
-        # try:
-        #     temperature_temp = self.max31855.temperature
-        #     temperature_reference_temp = self.max31855.reference_temperature
-        # except RuntimeError as e:
-        #     print(e)
-        #     if "short circuit to ground" in e:
-        #         pass
-        #     elif "short circuit to power" in e:
-        #         pass
-        #     elif "faulty reading" in e:
-        #         pass
-        #     elif "thermocouple not connected" in e:
-        #         pass
-        #     else:
-        #         raise e
-        # else:
-        #     if self.profile_selected:
-        #         # temp_target = self.profile_selected.temp_current_proportional_target
-        #         self.temp_current_proportional_target = (
-        #             self.profile_selected.temp_current_proportional_target_get()
-        #         )
-        #
-        #     if temperature_temp != self.temperature:
-        #         self.temperature = temperature_temp
-        #         self.temperature_reference = temperature_reference_temp
-        #         self.temperature_changed = True
-        #         # print("Temperature: {:.02f}°C ".format(self.temperature))
-        #
-        #     if self.temp_current_proportional_target:
-        #         self.temperature_difference = (
-        #             self.temp_current_proportional_target - self.temperature
-        #         )
-
+    def temperature_update_fake(self):
         # fake temp
         # temp_target = self.profile_selected.temp_current_proportional_target
         self.temp_current_proportional_target = (
@@ -360,19 +326,87 @@ class ReflowController(object):
         # clamp to range
         temp_current_fake = max(0, temp_current_fake)
         temp_current_fake = min(self.profile_selected.max_temperatur, temp_current_fake)
+
         if temp_current_fake != self.temperature:
             self.temperature = temp_current_fake
             self.temperature_reference = 20
-            # self.temperature_changed = True
+            self.temperature_changed = True
+        else:
+            self.temperature_changed = False
 
         if self.temp_current_proportional_target:
             self.temperature_difference = (
                 self.temp_current_proportional_target - self.temperature
             )
+        else:
+            self.temperature_difference = None
+
+    def temperature_update(self):
+        try:
+            temperature_temp = self.max31855.temperature
+            temperature_reference_temp = self.max31855.reference_temperature
+        except RuntimeError as e:
+            print("temperature_update error:\n  ", e)
+            self.temperature = None
+            self.temperature_reference = None
+            self.temp_current_proportional_target = None
+            self.temperature_difference = None
+            self.temperature_changed = False
+            if "short circuit to ground" in e:
+                pass
+            elif "short circuit to power" in e:
+                pass
+            elif "faulty reading" in e:
+                pass
+            elif "thermocouple not connected" in e:
+                pass
+            else:
+                raise e
+        else:
+            if self.profile_selected:
+                # temp_target = self.profile_selected.temp_current_proportional_target
+                self.temp_current_proportional_target = (
+                    self.profile_selected.temp_current_proportional_target_get()
+                )
+
+            # print(
+            #     "temperature_temp:           {:.02f}°C \n"
+            #     # "temperature:                {:.02f}°C \n"
+            #     "temperature_reference_temp: {:.02f}°C \n"
+            #     # "temperature_reference:      {:.02f}°C \n"
+            #     "".format(
+            #         temperature_temp,
+            #         # self.temperature,
+            #         temperature_reference_temp,
+            #         # self.temperature_reference,
+            #     ),
+            #     end="",
+            # )
+            if temperature_temp != self.temperature:
+                temperature_old = self.temperature
+                self.temperature = temperature_temp
+                self.temperature_reference = temperature_reference_temp
+                if temperature_old:
+                    temperature_change_diff = temperature_old - self.temperature
+                else:
+                    temperature_change_diff = 0
+                # print("temp_dif: {:.02f}°C ".format(temperature_change_diff))
+                if abs(temperature_change_diff) > 0.3:
+                    self.temperature_changed = temperature_change_diff
+                else:
+                    self.temperature_changed = False
+            else:
+                self.temperature_changed = False
+
+            if self.temp_current_proportional_target:
+                self.temperature_difference = (
+                    self.temp_current_proportional_target - self.temperature
+                )
 
     def main_loop(self):
         gc.collect()
         self.temperature_update()
+        # self.temperature_update_fake()
         self.state_current.update()
         self.ui.update()
         # self.check_buttons()
