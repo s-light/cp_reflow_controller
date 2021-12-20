@@ -93,9 +93,22 @@ class ReflowController(object):
         print()
         self.profiles_names = list(self.profiles.keys())
         self.profiles_names.sort()
+        # ProfileCalibration is an internal profile not available as user selection.
+        self.profiles_names.remove("ProfileCalibration")
         self.profile_selected = self.profiles[self.profiles_names[0]]
 
         # get_current_step
+
+    @property
+    def profile_selected(self):
+        return self._profile_selected
+
+    @profile_selected.setter
+    def profile_selected(self, profile):
+        self._profile_selected = profile
+        if hasattr(self, "ui"):
+            self.ui.profile_selected = self._profile_selected
+        return self._profile_selected
 
     # def profile_get_by_name(self, title):
     #     index = self.profiles_names.index(name)
@@ -115,8 +128,9 @@ class ReflowController(object):
 
     def profile_select_next(self):
         self.profile_selected = self.profiles[self.profile_get_next_name()]
-        # we need to reassing...
-        self.ui.profile_selected = self.profile_selected
+
+    def profile_select_calibration(self):
+        self.profile_selected = self.profiles["ProfileCalibration"]
 
     def load_config(self, filename="/config.json"):
         self.config = {}
@@ -174,18 +188,8 @@ class ReflowController(object):
         self.state_current = self.states[state]
         self.state_current.active = True
         state_name_new = self.state_current.name
-        print("changed state: '{}' -> '{}'".format(state_name_old, state_name_new))
+        print("rc state: '{}' -> '{}'".format(state_name_old, state_name_new))
         self.state_current.update()
-
-    # standby
-    def states_standby_enter(self):
-        self.heating = False
-
-    def states_standby_update(self):
-        pass
-
-    def states_standby_leave(self):
-        pass
 
     def setup_states(self):
         self.state_current = {}
@@ -210,6 +214,16 @@ class ReflowController(object):
             ),
         }
         self.switch_to_state("standby")
+
+    # standby
+    def states_standby_enter(self):
+        self.heating = False
+
+    def states_standby_update(self):
+        pass
+
+    def states_standby_leave(self):
+        pass
 
     ##########################################
     # reflow
@@ -280,21 +294,8 @@ class ReflowController(object):
         pass
 
     def calibrate_update(self):
-        print(
-            "{previous_line2}"
-            "{erase_line}stage:   '{stage}'\n"
-            "{erase_line}runtime:  {orange}{runtime: >6.2f}{reset}s\n"
-            "".format(
-                stage="test",
-                runtime=time.monotonic(),
-                orange=terminal.colors.fg.orange,
-                reset=terminal.colors.reset,
-                previous_line2=terminal.control.cursor.previous_line(2),
-                erase_line=terminal.control.erase_line(0),
-            ),
-            end="",
-        )
-        time.sleep(0.5)
+        # TODO: s-light: implement calibration routine
+        pass
 
     def calibrate_leave(self):
         self.heating = False
