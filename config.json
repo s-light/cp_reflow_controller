@@ -1,5 +1,5 @@
 {
-    "profile": "TestDev_Profile",
+    "profile": "TestDev_Profile_Slow",
     "calibration": {
         "temperature": 30,
         "duration": 37

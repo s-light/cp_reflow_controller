@@ -167,7 +167,7 @@ class ReflowController(object):
             self._heating.value = value
             # something changed!
             if hasattr(self, "ui"):
-                self.ui.show_heater_state(value)
+                self.ui.show_heater_state(not value)
         return self._heating.value
 
     def setup_hw(self):
@@ -403,7 +403,7 @@ class ReflowController(object):
             temperature_temp = self.max31855.temperature
             temperature_reference_temp = self.max31855.reference_temperature
         except RuntimeError as e:
-            self.ui.print_warning("temperature_update reading sensor failed: ", e)
+            self.ui.print_warning("sensor: ", e)
 
             # self.temperature = None
             # self.temperature_reference = None

@@ -137,14 +137,17 @@ class ReflowControllerUI(object):
         """
         return value + (-value) % round_to
 
-    def pixels_set_proportional(self, value, count, color_on=None, color_off=None):
+    def pixels_set_proportional(
+        self, value, count, pixel_count=None, color_on=None, color_off=None
+    ):
         if value and count:
+            if not pixel_count:
+                pixel_count = len(self.pixels)
             if not color_on:
                 color_on = self.colors["info"]
             if not color_off:
                 color_off = self.colors["off"]
             # set pixel proportional
-            pixel_count = len(self.pixels)
             # pixel_count = 100% = count
             # pixel_max = x = value
             pixel_max = pixel_count * value / count
@@ -536,7 +539,8 @@ class ReflowControllerUI(object):
             # self.reflow_update_ui_serial(replace=False)
             self.pixels_set_proportional(
                 self.profile_selected.step_current_index,
-                len(self.profile_selected.steps),
+                len(self.profile_selected.steps) - 1,
+                pixel_count=4,
             )
 
     ####################
