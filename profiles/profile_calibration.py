@@ -16,28 +16,28 @@ class ProfileCalibration(profiles.Profile):
         self.reference = "-"
         self.steps = [
             {
-                "stage": "prepare",
-                "duration": 5,
-                "temp_target": 20,
+                "stage": "set40",
+                "duration": 0,
+                "temp_target": 40,
             },
             {
-                "stage": "hold1",
-                "duration": 5,
-                "temp_target": 20,
+                "stage": "hold40",
+                "duration": 50,
+                "temp_target": 40,
             },
-            {
-                "stage": "heatup100",
-                "duration": 10,
-                "temp_target": 100,
-            },
-            {
-                "stage": "hold100",
-                "duration": 10,
-                "temp_target": 100,
-            },
-            {
-                "stage": "cool",
-                "duration": 5,
-                "temp_target": 0,
-            },
+            # {
+            #     "stage": "heatup100",
+            #     "duration": 10,
+            #     "temp_target": 100,
+            # },
+            # {
+            #     "stage": "hold100",
+            #     "duration": 10,
+            #     "temp_target": 100,
+            # },
+            # {
+            #     "stage": "cool",
+            #     "duration": 5,
+            #     "temp_target": 0,
+            # },
         ]

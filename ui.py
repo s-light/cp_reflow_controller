@@ -379,6 +379,11 @@ class ReflowControllerUI(object):
 
     def states_calibration_running_enter(self):
         self.prepare_display_update()
+        # set special temperature range:
+        self.my_plane.yrange = (
+            self.my_plane.yrange[0],
+            self.round_int_up(self.profile_selected.max_temperatur) + 30,
+        )
         print("\n" * self.config["display"]["serial"]["lines_spacing_above"])
         self.reflowcontroller.switch_to_state("calibrate")
 
@@ -478,13 +483,12 @@ class ReflowControllerUI(object):
         # print("display update.", self.profile_selected.runtime)
         runtime = round(self.profile_selected.runtime)
         if self.display_update_intervall < 1.0:
-            runtime = min(self.my_plane.xrange[1] * 1.0, self.profile_selected.runtime)
-        self.my_plane.add_line(
-            runtime,
-            self.reflowcontroller.temperature,
-        )
+            runtime = min(self.my_plane.xrange[1], self.profile_selected.runtime)
+        # hard limit so we trigger no out of range execption
+        temperature = min(self.my_plane.yrange[1], self.reflowcontroller.temperature)
+        self.my_plane.add_line(runtime, temperature)
 
-    def reflow_update_ui_serial(self, replace=True):
+    def update_ui_serial_multiline(self, replace=True):
         # update serial output
         # temp_target = self.profile_selected.temp_current_proportional_target
         temp_target = self.reflowcontroller.temp_current_proportional_target
@@ -524,6 +528,47 @@ class ReflowControllerUI(object):
                 ),
                 end="",
             )
+
+    def update_ui_serial_singleline(self, replace=False):
+        # update serial output
+        # temp_target = self.profile_selected.temp_current_proportional_target
+        temp_target = self.reflowcontroller.temp_current_proportional_target
+        if temp_target:
+            lines_spacing_above = self.config["display"]["serial"][
+                "lines_spacing_above"
+            ]
+            text = (
+                "{stage: <10} "
+                "{runtime: >7.2f}s "
+                "t: {orange}{target: >6.2f}{reset}°C "
+                "c: {current: >6.2f}°C "
+                "d: {diff: >6.2f}°C "
+            )
+            # if replace:
+            #     text += "{erase_line}" + text
+            # text = ("\n" * lines_spacing_above) + text
+            # if replace:
+            #     text = "{move_to_previous_lines}" + text
+            print(
+                text.format(
+                    stage=self.profile_selected.step_current["stage"],
+                    runtime=self.profile_selected.runtime,
+                    target=temp_target,
+                    current=self.reflowcontroller.temperature,
+                    diff=self.reflowcontroller.temperature_difference,
+                    orange=terminal.colors.fg.orange,
+                    reset=terminal.colors.reset,
+                    move_to_previous_lines=terminal.control.cursor.previous_line(
+                        1 + lines_spacing_above
+                    ),
+                    erase_line=terminal.control.erase_line(0),
+                ),
+                end="",
+            )
+
+    def reflow_update_ui_serial(self, replace=True):
+        # self.update_ui_serial_multiline(replace)
+        self.update_ui_serial_singleline()
 
     def states_reflow_running_update(self):
         if self.buttons.select.rose:
