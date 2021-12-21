@@ -16,14 +16,14 @@ class ProfileCalibration(profiles.Profile):
         self.reference = "-"
         self.steps = [
             {
-                "stage": "set40",
+                "stage": "set30",
                 "duration": 0,
-                "temp_target": 40,
+                "temp_target": 30,
             },
             {
-                "stage": "hold40",
-                "duration": 50,
-                "temp_target": 40,
+                "stage": "hold30",
+                "duration": 60,
+                "temp_target": 30,
             },
             # {
             #     "stage": "heatup100",

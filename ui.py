@@ -18,6 +18,7 @@ serial terminal & display terminal & drawing & button handling
 import time
 import board
 import supervisor
+import usb_cdc
 from adafruit_pybadger import pybadger
 import displayio
 from adafruit_displayio_layout.widgets.cartesian import Cartesian
@@ -182,6 +183,7 @@ class ReflowControllerUI(object):
             self.pixels[4] = self.config["colors"]["on"]
         else:
             self.pixels[4] = self.config["colors"]["off"]
+        print(" " * 60, "heater:", value)
 
     def print_temperature(self):
         if (
@@ -211,6 +213,27 @@ class ReflowControllerUI(object):
                 reset=terminal.colors.reset,
             )
         )
+
+    ##########################################
+    # usb_cdc.data
+
+    def usb_cdc_data_send(self):
+        temp_target = self.reflowcontroller.temp_current_proportional_target
+        if temp_target:
+            text = (
+                "s: {stage: <10}, "
+                "r: {runtime: >7.2f}s, "
+                "t: {target: >6.2f}°C, "
+                "c: {current: >6.2f}°C, "
+                "d: {diff: >6.2f}°C, "
+            ).format(
+                stage=self.profile_selected.step_current["stage"],
+                runtime=self.profile_selected.runtime,
+                target=temp_target,
+                current=self.reflowcontroller.temperature,
+                diff=self.reflowcontroller.temperature_difference,
+            )
+            usb_cdc.data.write(text.encode("utf-8"))
 
     ##########################################
     # state handling
@@ -299,6 +322,7 @@ class ReflowControllerUI(object):
 
     def states_standby_enter(self):
         self.show_terminal()
+        self.reflowcontroller.switch_to_state("standby")
 
     def states_standby_update(self):
         # update display
@@ -382,30 +406,40 @@ class ReflowControllerUI(object):
         # set special temperature range:
         self.my_plane.yrange = (
             self.my_plane.yrange[0],
-            self.round_int_up(self.profile_selected.max_temperatur) + 30,
+            self.round_int_up(self.profile_selected.max_temperatur) + 40,
         )
         print("\n" * self.config["display"]["serial"]["lines_spacing_above"])
+        self.my_plane.clear_lines()
+        self.display.show(self.main_group)
         self.reflowcontroller.switch_to_state("calibrate")
 
     def states_calibration_running_update(self):
-        # print("states_calibration_running_update")
-        self.states_reflow_running_update()
-        # if self.buttons.select.rose:
-        #     self.buttons.select.update()
-        #     self.switch_to_state("standby")
-        # # update display content
-        # # only add new point every second..
-        # duration = self.profile_selected.runtime - self.last_display_update
-        # if duration > self.display_update_intervall:
-        #     self.last_display_update = self.profile_selected.runtime
-        #     print("display update")
-        #     # self.reflow_update_ui_display()
-        #     self.reflow_update_ui_serial()
-        #     # self.reflow_update_ui_serial(replace=False)
-        #     self.pixels_set_proportional(
-        #         self.profile_selected.step_current_index,
-        #         len(self.profile_selected.steps),
-        #     )
+        if self.buttons.select.rose:
+            self.buttons.select.update()
+            self.switch_to_state("standby")
+        # update display content
+        # only add new point every second..
+        duration = self.profile_selected.runtime - self.last_display_update
+        if duration > self.display_update_intervall:
+            self.last_display_update = self.profile_selected.runtime
+            self.reflow_update_ui_display()
+            self.update_ui_serial_singleline(end="")
+            self.pixels_set_proportional(
+                self.profile_selected.step_current_index,
+                len(self.profile_selected.steps) - 1,
+                pixel_count=4,
+            )
+
+            temp_target = self.reflowcontroller.temp_current_proportional_target
+            diff = self.reflowcontroller.temperature_difference
+            # runtime = self.profile_selected.runtime
+            # target = temp_target
+            # current = self.reflowcontroller.temperature
+            # stage = self.profile_selected.step_current["stage"]
+            if temp_target and diff <= 0.1:
+                print("!!!!!!!!!")
+            else:
+                print()
 
     # def states_calibration_running_leave(self):
     #     self.switch_to_state("standby")
@@ -421,6 +455,9 @@ class ReflowControllerUI(object):
         print("")
 
     def states_calibration_done_update(self):
+        if self.reflowcontroller.temperature_changed:
+            self.reflowcontroller.temperature_changed = False
+            self.print_temperature()
         if self.buttons.start.rose:
             self.buttons.start.update()
             self.switch_to_state("standby")
@@ -529,14 +566,11 @@ class ReflowControllerUI(object):
                 end="",
             )
 
-    def update_ui_serial_singleline(self, replace=False):
+    def update_ui_serial_singleline(self, replace=False, end="\n"):
         # update serial output
         # temp_target = self.profile_selected.temp_current_proportional_target
         temp_target = self.reflowcontroller.temp_current_proportional_target
         if temp_target:
-            lines_spacing_above = self.config["display"]["serial"][
-                "lines_spacing_above"
-            ]
             text = (
                 "{stage: <10} "
                 "{runtime: >7.2f}s "
@@ -558,17 +592,15 @@ class ReflowControllerUI(object):
                     diff=self.reflowcontroller.temperature_difference,
                     orange=terminal.colors.fg.orange,
                     reset=terminal.colors.reset,
-                    move_to_previous_lines=terminal.control.cursor.previous_line(
-                        1 + lines_spacing_above
-                    ),
+                    move_to_previous_lines=terminal.control.cursor.previous_line(1),
                     erase_line=terminal.control.erase_line(0),
                 ),
-                end="",
+                end=end,
             )
 
     def reflow_update_ui_serial(self, replace=True):
-        # self.update_ui_serial_multiline(replace)
-        self.update_ui_serial_singleline()
+        self.update_ui_serial_multiline(replace)
+        # self.update_ui_serial_singleline()
 
     def states_reflow_running_update(self):
         if self.buttons.select.rose:

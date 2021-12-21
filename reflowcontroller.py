@@ -119,7 +119,7 @@ class ReflowController(object):
         try:
             index_current = self.profiles_names.index(self.profile_selected.__name__)
         except ValueError as e:
-            if "object not in sequence" in e.msg:
+            if "object not in sequence" in e.args[0]:
                 index_current = 99
             else:
                 raise e
@@ -256,8 +256,11 @@ class ReflowController(object):
             # maybe as PID
             # maybe just as simple hysteresis check
             # with prelearned timing..
-            hysteresis = 2
-            if diff > hysteresis:
+
+            # hysteresis = 5
+            # if diff < hysteresis:
+            temp_diff_disable_heater = 7
+            if diff > temp_diff_disable_heater:
                 self.heating = True
             else:
                 self.heating = False
