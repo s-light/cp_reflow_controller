@@ -184,7 +184,10 @@ class ReflowControllerUI(object):
 
     def show_heater_state(self, value):
         if value:
-            self.pixels[4] = self.config["colors"]["on"]
+            color = self.config["colors"]["on"]
+            # TODO: apply dimming.
+            # color =
+            self.pixels[4] = color
         else:
             self.pixels[4] = self.config["colors"]["off"]
         print(" " * 60, "heater:", value)
@@ -245,7 +248,7 @@ class ReflowControllerUI(object):
             # "\n"
             # "{runtime: >7.2f}, "
             "{stage: >2d}, "
-            "{heating: >2d}, "
+            "{heating: >6.2f}, "
             "{current: >6.2f}, "
             "{target: >6.2f}, "
             "{diff: >6.2f} "
@@ -442,7 +445,7 @@ class ReflowControllerUI(object):
         # set special temperature range:
         self.my_plane.yrange = (
             self.my_plane.yrange[0],
-            self.round_int_up(self.profile_selected.max_temperatur) + 40,
+            self.round_int_up(self.profile_selected.max_temperatur) + 20,
         )
         print("\n" * self.config["display"]["serial"]["lines_spacing_above"])
         self.my_plane.clear_plot_lines()
@@ -708,6 +711,13 @@ class ReflowControllerUI(object):
         )
         self.print_temperature()
 
+    def parse_value(self, input_string, pre_text):
+        try:
+            value = float(input_string[len(pre_text) + 1 :])
+        except ValueError as e:
+            print("Exception parsing 'pid p': ", e)
+        return value
+
     def check_input(self):
         """Check Input."""
         input_string = input()
@@ -718,8 +728,10 @@ class ReflowControllerUI(object):
             self.switch_to_state("reflow_prepare")
         if "stop" in input_string:
             self.menu_reflowcycle_stop()
-        if "p" in input_string:
+        if "profile" in input_string:
             self.reflowcontroller.profile_select_next()
+        if "pid p" in input_string:
+            self.reflowcontroller.pid.P_gain = self.parse_value(input_string, "pid p")
         # prepare new input
         self.print_help()
         print(">> ", end="")

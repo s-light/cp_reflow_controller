@@ -18,13 +18,17 @@ import random
 import gc
 import board
 import digitalio
+import pwmio
 
 import adafruit_max31855
 
 from configdict import extend_deep
 
+from helper import limit
+
 from state import State
 
+import pid
 import ui
 
 import profiles as myprofiles
@@ -47,6 +51,12 @@ class ReflowController(object):
             "max31855_cs_pin": "D4",
             "heating_pin": "D12",
         },
+        "pid": {
+            "update_intervall": 0.5,
+            "P_gain": 3.0,
+            "I_gain": 0.01,
+            "D_gain": 0.0,
+        },
         # all sub defaults for the UI are defined there.
     }
     config = {}
@@ -62,6 +72,7 @@ class ReflowController(object):
         if self.config["profile"] in self.profiles_names:
             self.profile_selected = self.profiles[self.config["profile"]]
         self.setup_hw()
+        self.heating_setup()
         self.setup_states()
         self.setup_ui()
 
@@ -160,9 +171,6 @@ class ReflowController(object):
         self.max31855_cs = digitalio.DigitalInOut(self.get_pin("max31855_cs_pin"))
         self.max31855 = adafruit_max31855.MAX31855(self.spi, self.max31855_cs)
 
-        self._heating = digitalio.DigitalInOut(self.get_pin("heating_pin"))
-        self._heating.direction = digitalio.Direction.OUTPUT
-        self.heating = False
         self.temperature = None
         self.temperature_reference = None
         self.temperature_changed = False
@@ -177,6 +185,85 @@ class ReflowController(object):
 
     def setup_ui(self):
         self.ui = ui.ReflowControllerUI(reflowcontroller=self)
+
+    ##########################################
+    # helper
+
+    ##########################################
+    # heating managment
+
+    def pid_update_output(self, value):
+        self.heating = value
+
+    def pid_update_input(self):
+        return self.temperature
+
+    def heating_setup(self):
+        # self._heating = digitalio.DigitalInOut(self.get_pin("heating_pin"))
+        # self._heating.direction = digitalio.Direction.OUTPUT
+        self._heating = pwmio.PWMOut(self.get_pin("heating_pin"), frequency=50)
+        self.heating = False
+        self.pid = pid.PID(
+            self.pid_update_input,
+            self.pid_update_output,
+            update_intervall=self.config["pid"]["update_intervall"],
+            P_gain=self.config["pid"]["P_gain"],
+            I_gain=self.config["pid"]["I_gain"],
+            D_gain=self.config["pid"]["D_gain"],
+        )
+
+    @property
+    def heating(self):
+        # return not self._heating.value
+        value_inverted = self._heating.duty_cycle / 65535
+        value = 1.0 - value_inverted
+        return value
+
+    @heating.setter
+    def heating(self, value):
+        # digital io
+        # invert value
+        # value = not value
+        # if self._heating.value != value:
+        #     self._heating.value = value
+        #     # something changed!
+        #     if hasattr(self, "ui"):
+        #         self.ui.show_heater_state(not value)
+        # return not self._heating.value
+        # pwm io
+        value = limit(value, 0.0, 1.0)
+        value_inverted = 1.0 - value
+        duty_cycle = int(65535 * value_inverted)
+        if self._heating.duty_cycle != duty_cycle:
+            self._heating.duty_cycle = duty_cycle
+            # something changed!
+            if hasattr(self, "ui"):
+                self.ui.show_heater_state(value)
+        # return self._heating.duty_cycle
+        return value
+
+    def handle_heating(self):
+        """Handle heating."""
+        if self.temperature and self.temp_current_proportional_target:
+            # temp = self.temperature
+            diff = self.temperature_difference
+            # target = self.temp_current_proportional_target
+
+            # TODO: s-light: Implement heating control
+            # maybe as PID
+            # maybe just as simple hysteresis check
+            # with prelearned timing..
+
+            # hysteresis = 5
+            # if diff < hysteresis:
+            temp_diff_disable_heater = 8
+            if diff > temp_diff_disable_heater:
+                self.heating = True
+            else:
+                self.heating = False
+            pass
+        else:
+            self.heating = False
 
     ##########################################
     # state handling
@@ -226,47 +313,6 @@ class ReflowController(object):
 
     def states_standby_leave(self):
         pass
-
-    ##########################################
-    # heating managment
-
-    @property
-    def heating(self):
-        return not self._heating.value
-
-    @heating.setter
-    def heating(self, value):
-        # invert value
-        value = not value
-        if self._heating.value != value:
-            self._heating.value = value
-            # something changed!
-            if hasattr(self, "ui"):
-                self.ui.show_heater_state(not value)
-        return not self._heating.value
-
-    def handle_heating(self):
-        """Handle heating."""
-        if self.temperature and self.temp_current_proportional_target:
-            # temp = self.temperature
-            diff = self.temperature_difference
-            # target = self.temp_current_proportional_target
-
-            # TODO: s-light: Implement heating control
-            # maybe as PID
-            # maybe just as simple hysteresis check
-            # with prelearned timing..
-
-            # hysteresis = 5
-            # if diff < hysteresis:
-            temp_diff_disable_heater = 8
-            if diff > temp_diff_disable_heater:
-                self.heating = True
-            else:
-                self.heating = False
-            pass
-        else:
-            self.heating = False
 
     ##########################################
     # reflow
