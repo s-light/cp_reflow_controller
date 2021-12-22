@@ -52,9 +52,9 @@ class ReflowController(object):
             "heating_pin": "D12",
         },
         "pid": {
-            "update_intervall": 0.5,
-            "P_gain": 3.0,
-            "I_gain": 0.01,
+            "update_intervall": 0.1,
+            "P_gain": 10.0,
+            "I_gain": 0.0,
             "D_gain": 0.0,
         },
         # all sub defaults for the UI are defined there.
@@ -201,7 +201,7 @@ class ReflowController(object):
     def heating_setup(self):
         # self._heating = digitalio.DigitalInOut(self.get_pin("heating_pin"))
         # self._heating.direction = digitalio.Direction.OUTPUT
-        self._heating = pwmio.PWMOut(self.get_pin("heating_pin"), frequency=50)
+        self._heating = pwmio.PWMOut(self.get_pin("heating_pin"), frequency=300)
         self.heating = False
         self.pid = pid.PID(
             self.pid_update_input,
@@ -210,7 +210,10 @@ class ReflowController(object):
             P_gain=self.config["pid"]["P_gain"],
             I_gain=self.config["pid"]["I_gain"],
             D_gain=self.config["pid"]["D_gain"],
+            debug_out_print=True,
         )
+        # default to minimal 18°C
+        self.pid.set_point = 18
 
     @property
     def heating(self):
@@ -238,7 +241,7 @@ class ReflowController(object):
             self._heating.duty_cycle = duty_cycle
             # something changed!
             if hasattr(self, "ui"):
-                self.ui.show_heater_state(value)
+                self.ui.show_heater_state(value, self._heating.duty_cycle)
         # return self._heating.duty_cycle
         return value
 
@@ -401,36 +404,6 @@ class ReflowController(object):
     ##########################################
     # main handling
 
-    def temperature_update_fake(self):
-        # fake temp
-        # temp_target = self.profile_selected.temp_current_proportional_target
-        self.temp_current_proportional_target = (
-            self.profile_selected.temp_current_proportional_target_get()
-        )
-        if self.temp_current_proportional_target:
-            temp_current_fake = self.temp_current_proportional_target + random.randint(
-                -10, 20
-            )
-        else:
-            temp_current_fake = 0
-        # clamp to range
-        temp_current_fake = max(0, temp_current_fake)
-        temp_current_fake = min(self.profile_selected.max_temperatur, temp_current_fake)
-
-        if temp_current_fake != self.temperature:
-            self.temperature = temp_current_fake
-            self.temperature_reference = 20
-            self.temperature_changed = True
-        else:
-            self.temperature_changed = False
-
-        if self.temp_current_proportional_target:
-            self.temperature_difference = (
-                self.temp_current_proportional_target - self.temperature
-            )
-        else:
-            self.temperature_difference = None
-
     def temperature_filter_update(self, temperature):
         self.temperature_list.append(temperature)
         if len(self.temperature_list) > 4:
@@ -523,6 +496,7 @@ class ReflowController(object):
     def main_loop(self):
         gc.collect()
         self.temperature_update()
+        self.pid.update()
         # self.temperature_update_fake()
         self.state_current.update()
         self.ui.update()

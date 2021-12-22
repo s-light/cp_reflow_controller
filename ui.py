@@ -182,7 +182,7 @@ class ReflowControllerUI(object):
         print("self.my_plane.yrange", self.my_plane.yrange)
         print("self.display_update_intervall", self.display_update_intervall)
 
-    def show_heater_state(self, value):
+    def show_heater_state(self, value, value_raw=None):
         if value:
             color = self.config["colors"]["on"]
             # TODO: apply dimming.
@@ -190,7 +190,12 @@ class ReflowControllerUI(object):
             self.pixels[4] = color
         else:
             self.pixels[4] = self.config["colors"]["off"]
-        print(" " * 60, "heater:", value)
+        print(" " * 48 + "heater: {: >7.2f}".format(value), end="")
+        if value_raw:
+            print(" = {: >6}".format(value_raw))
+        else:
+            # add missing line end
+            print()
 
     def print_temperature(self):
         if (
@@ -224,7 +229,7 @@ class ReflowControllerUI(object):
     ##########################################
     # usb_cdc.data
 
-    def usb_cdc_data_send(self):
+    def create_plot_data_system(self):
         temp_target = self.reflowcontroller.temp_current_proportional_target
         if not temp_target:
             temp_target = 0
@@ -251,8 +256,7 @@ class ReflowControllerUI(object):
             "{heating: >6.2f}, "
             "{current: >6.2f}, "
             "{target: >6.2f}, "
-            "{diff: >6.2f} "
-            "\n"
+            "{diff: >6.2f}, "
         ).format(
             stage=stage,
             # runtime=self.profile_selected.runtime,
@@ -261,6 +265,34 @@ class ReflowControllerUI(object):
             target=temp_target,
             diff=diff,
         )
+        return text
+
+    def create_plot_data_pid(self):
+        text = ""
+        pid = self.reflowcontroller.pid
+        if pid:
+            text = (
+                "{set_point: >6.2f}, "
+                "{error: >6.2f}, "
+                "{output: >6.2f} "
+                # "{p_value: >6.2f}, "
+                # "{i_value: >6.2f}, "
+                # "{d_value: >6.2f}, "
+            ).format(
+                set_point=pid.set_point,
+                error=pid.error,
+                output=pid.output,
+                # pid_p_value=pid.P_value,
+                # pid_i_value=pid.I_value,
+                # pid_d_value=pid.D_value,
+            )
+        return text
+
+    def usb_cdc_data_send(self):
+        text = ""
+        text += self.create_plot_data_system()
+        text += self.create_plot_data_pid()
+        text += "\n"
         usb_cdc.data.write(text.encode("utf-8"))
         # print(text, end="")
 
@@ -699,6 +731,11 @@ class ReflowControllerUI(object):
             )
         print(
             "you can set some options:\n"
+            "- 'pid *' set pid *\n"
+            "- 'pid p': proportional gain ({pid_p: >8.5f})\n"
+            "- 'pid i': integral gain     ({pid_i: >8.5f})\n"
+            "- 'pid d': derivative gain   ({pid_d: >8.5f})\n"
+            "- 'pid s': set_point         ({pid_s: >8.5f})\n"
             "- 'p' select next profil\n"
             "{profile_list}"
             "- 'calibrate'\n"
@@ -706,13 +743,20 @@ class ReflowControllerUI(object):
             "- 'stop'  reflow cycle\n"
             "".format(
                 profile_list=profile_list,
+                pid_p=self.reflowcontroller.pid.P_gain,
+                pid_i=self.reflowcontroller.pid.I_gain,
+                pid_d=self.reflowcontroller.pid.D_gain,
+                pid_s=self.reflowcontroller.pid.set_point,
             ),
             end="",
         )
         self.print_temperature()
 
     def parse_value(self, input_string, pre_text):
+        value = None
         try:
+            # ignore error 'whitespace before :'
+            # pylama:ignore=E203
             value = float(input_string[len(pre_text) + 1 :])
         except ValueError as e:
             print("Exception parsing 'pid p': ", e)
@@ -731,7 +775,21 @@ class ReflowControllerUI(object):
         if "profile" in input_string:
             self.reflowcontroller.profile_select_next()
         if "pid p" in input_string:
-            self.reflowcontroller.pid.P_gain = self.parse_value(input_string, "pid p")
+            value = self.parse_value(input_string, "pid p")
+            if value:
+                self.reflowcontroller.pid.P_gain = value
+        if "pid i" in input_string:
+            value = self.parse_value(input_string, "pid i")
+            if value:
+                self.reflowcontroller.pid.I_gain = value
+        if "pid d" in input_string:
+            value = self.parse_value(input_string, "pid d")
+            if value:
+                self.reflowcontroller.pid.D_gain = value
+        if "pid s" in input_string:
+            value = self.parse_value(input_string, "pid s")
+            if value:
+                self.reflowcontroller.pid.set_point = value
         # prepare new input
         self.print_help()
         print(">> ", end="")

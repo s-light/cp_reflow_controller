@@ -86,13 +86,13 @@ class PID:
 
         if self.debug_out_fun or self.debug_out_print:
             debug_out = (
-                "set_point: {set_point}\n"
-                "P: {P_value}\n"
-                "I: {I_value}\n"
-                "D: {D_value}\n"
-                "output: {output}"
+                # "set_point: {set_point}\n"
+                "P_value: {P_value: > 7.2f}  "
+                "I_value: {I_value: > 7.2f}  "
+                "D_value: {D_value: > 7.2f}  "
+                "output: {output: > 7.2f}  "
                 "".format(
-                    set_point=self.set_point,
+                    # set_point=self.set_point,
                     P_value=self.P_value,
                     I_value=self.I_value,
                     D_value=self.D_value,
@@ -102,7 +102,7 @@ class PID:
             if self.debug_out_fun:
                 self.debug_out_fun(debug_out)
             if self.debug_out_print:
-                print(debug_out)
+                print(debug_out, end="")
 
         return self.output / 100.0
 
@@ -125,9 +125,9 @@ class PID:
                 self.error = self.set_point - current_value
                 if self.debug_out_fun or self.debug_out_print:
                     debug_out = (
-                        "current_value: {current_value}\n"
-                        "set_point: {set_point}\n"
-                        "error: {error}"
+                        "current_value: {current_value: > 7.2f}  "
+                        "set_point: {set_point: > 7.2f}  "
+                        "error: {error: > 7.2f}  "
                         "".format(
                             current_value=current_value,
                             set_point=self.set_point,
@@ -137,10 +137,11 @@ class PID:
                     if self.debug_out_fun:
                         self.debug_out_fun(debug_out)
                     if self.debug_out_print:
-                        print(debug_out)
+                        print(debug_out, end="")
             else:
                 self.error = error
             output = self._update(current_value)
             self.output_fun(output)
             self.last_update_time = time.monotonic()
+            print()
         return output
