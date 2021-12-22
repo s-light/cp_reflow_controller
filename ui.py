@@ -65,6 +65,9 @@ class ReflowControllerUI(object):
                 "lines_spacing_above": 15,
             },
         },
+        "serial_data": {
+            "intervall": 0.5,
+        },
         "colors": {
             "off": (0, 0, 0),
             "on": (2, 0, 1),
@@ -85,6 +88,7 @@ class ReflowControllerUI(object):
         self.setup()
         self.setup_states()
         self.setup_colors()
+        self.usb_cdc_data_setup()
 
     def setup(self):
         self.config = self.reflowcontroller.config
@@ -219,21 +223,53 @@ class ReflowControllerUI(object):
 
     def usb_cdc_data_send(self):
         temp_target = self.reflowcontroller.temp_current_proportional_target
-        if temp_target:
-            text = (
-                "s: {stage: <10}, "
-                "r: {runtime: >7.2f}s, "
-                "t: {target: >6.2f}°C, "
-                "c: {current: >6.2f}°C, "
-                "d: {diff: >6.2f}°C, "
-            ).format(
-                stage=self.profile_selected.step_current["stage"],
-                runtime=self.profile_selected.runtime,
-                target=temp_target,
-                current=self.reflowcontroller.temperature,
-                diff=self.reflowcontroller.temperature_difference,
-            )
-            usb_cdc.data.write(text.encode("utf-8"))
+        if not temp_target:
+            temp_target = 0
+        current = self.reflowcontroller.temperature
+        if not current:
+            current = 0
+        diff = self.reflowcontroller.temperature_difference
+        if not diff:
+            diff = 0
+        stage = 0
+        if self.profile_selected:
+            stage = self.profile_selected.step_current_index
+        if not stage:
+            stage = 0
+        text = (
+            # "s: {stage: <10}, "
+            # "r: {runtime: >7.2f}s, "
+            # "t: {target: >6.2f}°C, "
+            # "c: {current: >6.2f}°C, "
+            # "d: {diff: >6.2f}°C "
+            # "\n"
+            # "{runtime: >7.2f}, "
+            "{stage: >2d}, "
+            "{heating: >2d}, "
+            "{current: >6.2f}, "
+            "{target: >6.2f}, "
+            "{diff: >6.2f} "
+            "\n"
+        ).format(
+            stage=stage,
+            # runtime=self.profile_selected.runtime,
+            heating=self.reflowcontroller.heating * 10,
+            current=current,
+            target=temp_target,
+            diff=diff,
+        )
+        usb_cdc.data.write(text.encode("utf-8"))
+        # print(text, end="")
+
+    def usb_cdc_data_setup(self):
+        self.usb_cdc_data_last_send = time.monotonic()
+        self.usb_cdc_data_intervall = self.config["serial_data"]["intervall"]
+
+    def usb_cdc_data_update(self):
+        duration = time.monotonic() - self.usb_cdc_data_last_send
+        if duration > self.usb_cdc_data_intervall:
+            self.usb_cdc_data_send()
+            self.usb_cdc_data_last_send = time.monotonic()
 
     ##########################################
     # state handling
@@ -409,11 +445,13 @@ class ReflowControllerUI(object):
             self.round_int_up(self.profile_selected.max_temperatur) + 40,
         )
         print("\n" * self.config["display"]["serial"]["lines_spacing_above"])
-        self.my_plane.clear_lines()
+        self.my_plane.clear_plot_lines()
         self.display.show(self.main_group)
         self.reflowcontroller.switch_to_state("calibrate")
 
     def states_calibration_running_update(self):
+        if self.reflowcontroller.temperature_changed:
+            self.usb_cdc_data_send()
         if self.buttons.select.rose:
             self.buttons.select.update()
             self.switch_to_state("standby")
@@ -507,7 +545,7 @@ class ReflowControllerUI(object):
     def states_reflow_running_enter(self):
         self.prepare_display_update()
         print("\n" * self.config["display"]["serial"]["lines_spacing_above"])
-        self.my_plane.clear_lines()
+        self.my_plane.clear_plot_lines()
         self.display.show(self.main_group)
         # TODO: s-light: show profile as background graph
         # graph_data = []
@@ -523,7 +561,7 @@ class ReflowControllerUI(object):
             runtime = min(self.my_plane.xrange[1], self.profile_selected.runtime)
         # hard limit so we trigger no out of range execption
         temperature = min(self.my_plane.yrange[1], self.reflowcontroller.temperature)
-        self.my_plane.add_line(runtime, temperature)
+        self.my_plane.add_plot_line(runtime, temperature)
 
     def update_ui_serial_multiline(self, replace=True):
         # update serial output
@@ -603,6 +641,8 @@ class ReflowControllerUI(object):
         # self.update_ui_serial_singleline()
 
     def states_reflow_running_update(self):
+        if self.reflowcontroller.temperature_changed:
+            self.usb_cdc_data_send()
         if self.buttons.select.rose:
             self.buttons.select.update()
             self.switch_to_state("standby")
@@ -713,6 +753,7 @@ class ReflowControllerUI(object):
         self.buttons.update()
         self.state_current.update()
         # self.display_update()
+        self.usb_cdc_data_update()
         if supervisor.runtime.serial_bytes_available:
             self.check_input()
 

@@ -155,21 +155,6 @@ class ReflowController(object):
         board_pin_name = self.config["hw"][pin_name]
         return getattr(board, board_pin_name)
 
-    @property
-    def heating(self):
-        return self._heating.value
-
-    @heating.setter
-    def heating(self, value):
-        # invert value
-        value = not value
-        if self._heating.value != value:
-            self._heating.value = value
-            # something changed!
-            if hasattr(self, "ui"):
-                self.ui.show_heater_state(not value)
-        return self._heating.value
-
     def setup_hw(self):
         self.spi = board.SPI()
         self.max31855_cs = digitalio.DigitalInOut(self.get_pin("max31855_cs_pin"))
@@ -245,6 +230,21 @@ class ReflowController(object):
     ##########################################
     # heating managment
 
+    @property
+    def heating(self):
+        return not self._heating.value
+
+    @heating.setter
+    def heating(self, value):
+        # invert value
+        value = not value
+        if self._heating.value != value:
+            self._heating.value = value
+            # something changed!
+            if hasattr(self, "ui"):
+                self.ui.show_heater_state(not value)
+        return not self._heating.value
+
     def handle_heating(self):
         """Handle heating."""
         if self.temperature and self.temp_current_proportional_target:
@@ -259,7 +259,7 @@ class ReflowController(object):
 
             # hysteresis = 5
             # if diff < hysteresis:
-            temp_diff_disable_heater = 7
+            temp_diff_disable_heater = 8
             if diff > temp_diff_disable_heater:
                 self.heating = True
             else:
@@ -311,7 +311,41 @@ class ReflowController(object):
         self.profile_selected.start()
 
     def calibrate_update(self):
+        """
+        Calibrate / Analyse Heater behavior.
+
+        what do we want to get?!
+        StepTime?
+        """
         # TODO: s-light: implement calibration routine
+        # profile = self.profile_selected
+        # if self.temperature and profile.step_current:
+        #     # temp = self.temperature
+        #     diff = self.temperature_difference
+        #     # target = self.temp_current_proportional_target
+        #
+        #     # TODO: s-light: Implement heating control
+        #     # maybe as PID
+        #     # maybe just as simple hysteresis check
+        #     # with prelearned timing..
+        #
+        #     # hysteresis = 5
+        #     # if diff < hysteresis:
+        #     temp_diff_disable_heater = 8
+        #     if diff > temp_diff_disable_heater:
+        #         self.heating = True
+        #     else:
+        #         self.heating = False
+        #     pass
+        # else:
+        #     self.heating = False
+        #
+        # if (
+        #     profile.step_current
+        #     and profile.runtime > profile.step_current["runtime_end"]
+        # ):
+        #     # self.step_next()
+        #     pass
         self.reflow_update()
 
     def calibrate_finished(self):

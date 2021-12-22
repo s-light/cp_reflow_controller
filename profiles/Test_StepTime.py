@@ -1,16 +1,16 @@
 import profiles
 
-"""Calibration Profile"""
+"""Test StepTime"""
 
 
-class ProfileCalibration(profiles.Profile):
-    """Calibration Profile"""
+class Test_StepTime(profiles.Profile):
+    """Test StepTime"""
 
     def config(self):
         # __name__ msut be the same as the class name
-        self.__name__ = "ProfileCalibration"
-        self.title = "Calibration Profile"
-        self.title_short = "Calibration Profile"
+        self.__name__ = "Test_StepTime"
+        self.title = "Test StepTime"
+        self.title_short = "Test StepTime"
         self.alloy = "-"
         self.melting_point = 220
         self.reference = "-"
@@ -22,7 +22,7 @@ class ProfileCalibration(profiles.Profile):
             },
             {
                 "stage": "hold40",
-                "duration": 60,
+                "duration": 120,
                 "temp_target": 40,
             },
             # {
