@@ -755,12 +755,26 @@ class ReflowControllerUI(object):
 
     def parse_value(self, input_string, pre_text):
         value = None
-        try:
-            # ignore error 'whitespace before :'
-            # pylama:ignore=E203
-            value = float(input_string[len(pre_text) + 1 :])
-        except ValueError as e:
-            print("Exception parsing 'pid p': ", e)
+        # strip pre_text
+        # ignore error 'whitespace before :'
+        # pylama:ignore=E203
+        input_string = input_string[len(pre_text) + 1 :]
+        if "None" in value:
+            value = None
+        elif "False" in value:
+            value = False
+        elif "True" in value:
+            value = True
+        else:
+            try:
+                value = float()
+            except ValueError as e:
+                print(
+                    "Exception parsing '{pre_text}': {error}".format(
+                        pre_text=pre_text,
+                        error=e,
+                    )
+                )
         return value
 
     def check_input(self):

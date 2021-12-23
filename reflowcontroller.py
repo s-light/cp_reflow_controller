@@ -56,7 +56,7 @@ class ReflowController(object):
             "update_intervall": 0.1,
             "P_gain": 20.0,
             "I_gain": 0.2,
-            "D_gain": 2.0,
+            "D_gain": 1.0,
         },
         # all sub defaults for the UI are defined there.
     }
@@ -253,14 +253,14 @@ class ReflowController(object):
 
     @heating.setter
     def heating(self, value):
-        print("heating.setter: value", value, end="")
+        # print("heating.setter: value", value, end="")
         if value is False or value is None:
             if self.temperature_reference:
                 value = helper.round_nearest(self.temperature_reference, 0.25)
             else:
                 # fallback to 18°C
                 value = 18
-        print(" →", value)
+        # print(" →", value)
         self.pid.set_point = value
         return value
 
