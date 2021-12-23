@@ -176,7 +176,6 @@ class ReflowController(object):
         self.temperature_reference = None
         self.temperature_changed = False
         self.temperature_change_last = False
-        self.temperature_difference = None
         self.temp_current_proportional_target = None
         self.temperature_list = []
 
@@ -270,23 +269,6 @@ class ReflowController(object):
         self.pid.set_point = value
         return value
 
-    def handle_heater_pwm(self):
-        """Handle heater_target."""
-        if self.temperature and self.temp_current_proportional_target:
-            self.heater_target = self.temp_current_proportional_target
-            # target = self.temp_current_proportional_target
-            # temp = self.temperature
-            # diff = self.temperature_difference
-            # hysteresis = 5
-            # if diff < hysteresis:
-            # temp_diff_disable_heater = 8
-            # if diff > temp_diff_disable_heater:
-            #     self.heater_target = True
-            # else:
-            #     self.heater_target = False
-        else:
-            self.heater_target = False
-
     ##########################################
     # state handling
 
@@ -345,7 +327,10 @@ class ReflowController(object):
 
     def reflow_update(self):
         # handle heater_target with currently selected profile..
-        self.handle_heater_pwm()
+        if self.temperature and self.temp_current_proportional_target:
+            self.heater_target = self.temp_current_proportional_target
+        else:
+            self.heater_target = False
 
         profile_running = self.profile_selected.step_next_check_and_do()
         # print("profile_running", profile_running)
@@ -454,7 +439,6 @@ class ReflowController(object):
             # self.temperature = None
             # self.temperature_reference = None
             self.temp_current_proportional_target = None
-            self.temperature_difference = None
             self.temperature_changed = False
             self.temperature_read_error = e
             e_message = e.args[0]
@@ -489,9 +473,6 @@ class ReflowController(object):
                     self.temp_current_proportional_target = self.temperature_reference
             else:
                 self.temp_current_proportional_target = self.temperature_reference
-            self.temperature_difference = (
-                self.temp_current_proportional_target - self.temperature
-            )
 
     def main_loop(self):
         gc.collect()

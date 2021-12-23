@@ -247,9 +247,6 @@ class ReflowControllerUI(object):
         temp_target = self.reflowcontroller.temp_current_proportional_target
         if not temp_target:
             temp_target = 0
-        diff = self.reflowcontroller.temperature_difference
-        if not diff:
-            diff = 0
         stage = 0
         if self.profile_selected:
             stage = self.profile_selected.step_current_index
@@ -259,12 +256,10 @@ class ReflowControllerUI(object):
             # "{runtime: >7.2f}, "
             "{stage: >2d}, "
             "{target: > 7.2f}, "
-            "{diff: > 7.2f}, "
         ).format(
             # runtime=self.profile_selected.runtime,
             stage=stage * 10,
             target=temp_target,
-            diff=diff,
         )
         return text
 
@@ -296,7 +291,7 @@ class ReflowControllerUI(object):
         text += self.create_plot_data_pid()
         text += "\n"
         usb_cdc.data.write(text.encode("utf-8"))
-        print(text, end="")
+        # print(text, end="")
 
     def usb_cdc_data_setup(self):
         self.usb_cdc_data_last_send = time.monotonic()
@@ -505,17 +500,6 @@ class ReflowControllerUI(object):
                 pixel_count=4,
             )
 
-            temp_target = self.reflowcontroller.temp_current_proportional_target
-            diff = self.reflowcontroller.temperature_difference
-            # runtime = self.profile_selected.runtime
-            # target = temp_target
-            # current = self.reflowcontroller.temperature
-            # stage = self.profile_selected.step_current["stage"]
-            if temp_target and diff <= 0.1:
-                print("!!!!!!!!!")
-            else:
-                print()
-
     # def states_calibration_running_leave(self):
     #     self.switch_to_state("standby")
 
@@ -614,7 +598,6 @@ class ReflowControllerUI(object):
                 "runtime:{runtime: >7.2f}s\n",
                 "target:  {orange}{target: >6.2f}{reset}°C\n",
                 "current: {current: >6.2f}°C\n",
-                "diff:    {diff: >6.2f}°C\n",
             ]
             if replace:
                 for line in lines:
@@ -630,7 +613,6 @@ class ReflowControllerUI(object):
                     runtime=self.profile_selected.runtime,
                     target=temp_target,
                     current=self.reflowcontroller.temperature,
-                    diff=self.reflowcontroller.temperature_difference,
                     orange=terminal.colors.fg.orange,
                     reset=terminal.colors.reset,
                     move_to_previous_lines=terminal.control.cursor.previous_line(
@@ -648,9 +630,9 @@ class ReflowControllerUI(object):
             text = (
                 "{stage: <10} "
                 "{runtime: >7.2f}s "
-                "t: {orange}{target: >6.2f}{reset}°C "
-                "c: {current: >6.2f}°C "
-                "d: {diff: >6.2f}°C "
+                "t: {orange}{target: > 7.2f}{reset}°C "
+                "c: {current: > 7.2f}°C "
+                "d: {error: > 7.2f}°C "
             )
             # if replace:
             #     text += "{erase_line}" + text
@@ -663,7 +645,7 @@ class ReflowControllerUI(object):
                     runtime=self.profile_selected.runtime,
                     target=temp_target,
                     current=self.reflowcontroller.temperature,
-                    diff=self.reflowcontroller.temperature_difference,
+                    error=self.reflowcontroller.pid.error,
                     orange=terminal.colors.fg.orange,
                     reset=terminal.colors.reset,
                     move_to_previous_lines=terminal.control.cursor.previous_line(1),
