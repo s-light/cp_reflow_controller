@@ -18,17 +18,17 @@ class TestDev_Profile_Slow(profiles.Profile):
             {
                 "stage": "preheat",
                 "duration": 10,
-                "temp_target": 25,
+                "temp_target": 30,
             },
             {
                 "stage": "soak",
                 "duration": 20,
-                "temp_target": 30,
+                "temp_target": 50,
             },
             {
                 "stage": "reflow",
-                "duration": 30,
-                "temp_target": 35,
+                "duration": 10,
+                "temp_target": 60,
             },
             {
                 "stage": "cool",

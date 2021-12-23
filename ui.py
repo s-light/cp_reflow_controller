@@ -227,12 +227,26 @@ class ReflowControllerUI(object):
     # usb_cdc.data
 
     def create_plot_data_system(self):
+        # current = self.reflowcontroller.temperature
+        # if not current:
+        #     current = 0
+        text = (
+            # "{runtime: > 7.2f}, "
+            "{current: > 7.2f}, "
+            "{heater_target: > 7.2f}, "
+            "{heater_pwm: > 7.2f}, "
+        ).format(
+            # runtime=time.monotonic(),
+            current=self.reflowcontroller.temperature,
+            heater_target=self.reflowcontroller.heater_target,
+            heater_pwm=self.reflowcontroller.heater_pwm * 100,
+        )
+        return text
+
+    def create_plot_data_profile(self):
         temp_target = self.reflowcontroller.temp_current_proportional_target
         if not temp_target:
             temp_target = 0
-        current = self.reflowcontroller.temperature
-        if not current:
-            current = 0
         diff = self.reflowcontroller.temperature_difference
         if not diff:
             diff = 0
@@ -242,25 +256,13 @@ class ReflowControllerUI(object):
         if not stage:
             stage = 0
         text = (
-            # "s: {stage: <10}, "
-            # "r: {runtime: >7.2f}s, "
-            # "t: {target: >6.2f}°C, "
-            # "c: {current: >6.2f}°C, "
-            # "d: {diff: >6.2f}°C "
-            # "\n"
             # "{runtime: >7.2f}, "
             "{stage: >2d}, "
-            "{heater: > 7.2f}, "
-            "{current: > 7.2f}, "
-            "{set_point: > 7.2f}, "
             "{target: > 7.2f}, "
             "{diff: > 7.2f}, "
         ).format(
-            stage=stage,
             # runtime=self.profile_selected.runtime,
-            heater=self.reflowcontroller.heater_pwm,
-            current=current,
-            set_point=self.reflowcontroller.heating,
+            stage=stage * 10,
             target=temp_target,
             diff=diff,
         )
@@ -271,14 +273,14 @@ class ReflowControllerUI(object):
         pid = self.reflowcontroller.pid
         if pid:
             text = (
-                # "{set_point: >6.2f}, "
+                "{set_point: >6.2f}, "
                 "{error: >6.2f}, "
                 "{output: >6.2f} "
                 # "{p_value: >6.2f}, "
                 # "{i_value: >6.2f}, "
                 # "{d_value: >6.2f}, "
             ).format(
-                # set_point=pid.set_point,
+                set_point=pid.set_point,
                 error=pid.error,
                 output=pid.output,
                 # pid_p_value=pid.P_value,
@@ -290,10 +292,11 @@ class ReflowControllerUI(object):
     def usb_cdc_data_send(self):
         text = ""
         text += self.create_plot_data_system()
+        text += self.create_plot_data_profile()
         text += self.create_plot_data_pid()
         text += "\n"
         usb_cdc.data.write(text.encode("utf-8"))
-        # print(text, end="")
+        print(text, end="")
 
     def usb_cdc_data_setup(self):
         self.usb_cdc_data_last_send = time.monotonic()
@@ -640,7 +643,6 @@ class ReflowControllerUI(object):
 
     def update_ui_serial_singleline(self, replace=False, end="\n"):
         # update serial output
-        # temp_target = self.profile_selected.temp_current_proportional_target
         temp_target = self.reflowcontroller.temp_current_proportional_target
         if temp_target:
             text = (
@@ -671,8 +673,8 @@ class ReflowControllerUI(object):
             )
 
     def reflow_update_ui_serial(self, replace=True):
-        self.update_ui_serial_multiline(replace)
-        # self.update_ui_serial_singleline()
+        # self.update_ui_serial_multiline(replace)
+        self.update_ui_serial_singleline()
 
     def states_reflow_running_update(self):
         if self.reflowcontroller.temperature_changed:
@@ -735,7 +737,7 @@ class ReflowControllerUI(object):
             "- 'pid i': integral gain     ({pid_i: >8.5f})\n"
             "- 'pid d': derivative gain   ({pid_d: >8.5f})\n"
             "- 'pid s': set_point         ({pid_s: >8.5f})\n"
-            "- 'heating': set heating target ({heating: > 7.2f})\n"
+            "- 'h': set heater_target ({heater_target: > 7.2f})\n"
             "- 'p' select next profil\n"
             "{profile_list}"
             "- 'calibrate'\n"
@@ -747,7 +749,7 @@ class ReflowControllerUI(object):
                 pid_i=self.reflowcontroller.pid.I_gain,
                 pid_d=self.reflowcontroller.pid.D_gain,
                 pid_s=self.reflowcontroller.pid.set_point,
-                heating=self.reflowcontroller.heating,
+                heater_target=self.reflowcontroller.heater_target,
             ),
             end="",
         )
@@ -759,15 +761,15 @@ class ReflowControllerUI(object):
         # ignore error 'whitespace before :'
         # pylama:ignore=E203
         input_string = input_string[len(pre_text) + 1 :]
-        if "None" in value:
+        if "None" in input_string:
             value = None
-        elif "False" in value:
+        elif "False" in input_string:
             value = False
-        elif "True" in value:
+        elif "True" in input_string:
             value = True
         else:
             try:
-                value = float()
+                value = float(input_string)
             except ValueError as e:
                 print(
                     "Exception parsing '{pre_text}': {error}".format(
@@ -805,10 +807,10 @@ class ReflowControllerUI(object):
             value = self.parse_value(input_string, "pid s")
             if value:
                 self.reflowcontroller.pid.set_point = value
-        if "heating" in input_string:
-            value = self.parse_value(input_string, "heating")
+        if "h" in input_string:
+            value = self.parse_value(input_string, "h")
             if value:
-                self.reflowcontroller.heating = value
+                self.reflowcontroller.heater_target = value
         # prepare new input
         self.print_help()
         print(">> ", end="")

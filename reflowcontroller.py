@@ -50,13 +50,13 @@ class ReflowController(object):
         "calibration": {"temperature": 30, "duration": 37},
         "hw": {
             "max31855_cs_pin": "D4",
-            "heating_pin": "D12",
+            "heater_pin": "D12",
         },
         "pid": {
             "update_intervall": 0.1,
             "P_gain": 20.0,
             "I_gain": 0.2,
-            "D_gain": 1.0,
+            "D_gain": 0.5,
         },
         # all sub defaults for the UI are defined there.
     }
@@ -73,7 +73,7 @@ class ReflowController(object):
         if self.config["profile"] in self.profiles_names:
             self.profile_selected = self.profiles[self.config["profile"]]
         self.setup_hw()
-        self.heating_setup()
+        self.heater_setup()
         self.setup_states()
         self.setup_ui()
 
@@ -192,17 +192,23 @@ class ReflowController(object):
 
     ##########################################
     # heating managment
+    # self.heater_target is the api to set and get the current target value for the pid controller
+    # self.heater_pwm is the mostly internal direct access to the heater output in 0..1 format
+    # self._heater_pwm is the raw pwm output
 
     def pid_update_output(self, value):
+        # value is in the range of 0.0 .. 1.0
         self.heater_pwm = value
+        # here we could also implement a cooling fan -
+        # if the output goes below 0.0
 
     def pid_update_input(self):
         return self.temperature
 
-    def heating_setup(self):
-        # self._heater_pwm = digitalio.DigitalInOut(self.get_pin("heating_pin"))
+    def heater_setup(self):
+        # self._heater_pwm = digitalio.DigitalInOut(self.get_pin("heater_pin"))
         # self._heater_pwm.direction = digitalio.Direction.OUTPUT
-        self._heater_pwm = pwmio.PWMOut(self.get_pin("heating_pin"), frequency=300)
+        self._heater_pwm = pwmio.PWMOut(self.get_pin("heater_pin"), frequency=300)
         # manually set heater off
         self._heater_pwm.duty_cycle = 65535
         self.pid = pid.PID(
@@ -214,8 +220,8 @@ class ReflowController(object):
             D_gain=self.config["pid"]["D_gain"],
             debug_out_print=True,
         )
-        self.heating = False
-        # print("heating_setup done:", self.heating)
+        self.heater_target = False
+        # print("heater_setup done:", self.heater)
 
     @property
     def heater_pwm(self):
@@ -248,15 +254,15 @@ class ReflowController(object):
         return value
 
     @property
-    def heating(self):
+    def heater_target(self):
         return self.pid.set_point
 
-    @heating.setter
-    def heating(self, value):
-        # print("heating.setter: value", value, end="")
+    @heater_target.setter
+    def heater_target(self, value):
+        # print("heater_target.setter: value", value, end="")
         if value is False or value is None:
             if self.temperature_reference:
-                value = helper.round_nearest(self.temperature_reference, 0.25)
+                value = self.temperature_reference
             else:
                 # fallback to 18°C
                 value = 18
@@ -265,9 +271,9 @@ class ReflowController(object):
         return value
 
     def handle_heater_pwm(self):
-        """Handle heating."""
+        """Handle heater_target."""
         if self.temperature and self.temp_current_proportional_target:
-            self.heating = self.temp_current_proportional_target
+            self.heater_target = self.temp_current_proportional_target
             # target = self.temp_current_proportional_target
             # temp = self.temperature
             # diff = self.temperature_difference
@@ -275,11 +281,11 @@ class ReflowController(object):
             # if diff < hysteresis:
             # temp_diff_disable_heater = 8
             # if diff > temp_diff_disable_heater:
-            #     self.heating = True
+            #     self.heater_target = True
             # else:
-            #     self.heating = False
+            #     self.heater_target = False
         else:
-            self.heating = False
+            self.heater_target = False
 
     ##########################################
     # state handling
@@ -322,7 +328,7 @@ class ReflowController(object):
 
     # standby
     def states_standby_enter(self):
-        self.heating = False
+        self.heater_target = False
 
     def states_standby_update(self):
         pass
@@ -338,7 +344,7 @@ class ReflowController(object):
         self.profile_selected.start()
 
     def reflow_update(self):
-        # handle heating with currently selected profile..
+        # handle heater_target with currently selected profile..
         self.handle_heater_pwm()
 
         profile_running = self.profile_selected.step_next_check_and_do()
@@ -351,7 +357,7 @@ class ReflowController(object):
         #     self.switch_to_state("reflow_done")
 
     def reflow_finished(self):
-        self.heating = False
+        self.heater_target = False
         self.ui.switch_to_state("reflow_done")
 
     ##########################################
@@ -361,11 +367,11 @@ class ReflowController(object):
 
         # for duration in range(60):
         for duration in range(10):
-            # self.heating.value = not self.heating.value
+            # self.heater_target.value = not self.heater_target.value
             # time.sleep(1)
-            self.heating.value = True
+            self.heater_target.value = True
             time.sleep(0.2)
-            self.heating.value = False
+            self.heater_target.value = False
             time.sleep(0.8)
 
     # calibrate
@@ -382,7 +388,7 @@ class ReflowController(object):
         self.reflow_update()
 
     def calibrate_finished(self):
-        self.heating = False
+        self.heater_target = False
         self.ui.switch_to_state("calibration_done")
 
     ##########################################
@@ -463,21 +469,29 @@ class ReflowController(object):
             else:
                 raise e
         else:
-            self.temperature_reference = temperature_reference_read
+            self.temperature_reference_raw = temperature_reference_read
+            self.temperature_reference = helper.round_nearest(
+                self.temperature_reference_raw, 0.25
+            )
             self.temperature_update_on_change(temperature_read)
             # temperature_filtered = self.temperature_filter_update(temperature_read)
             # self.temperature_update_on_change(temperature_filtered)
 
             if self.profile_selected:
-                # temp_target = self.profile_selected.temp_current_proportional_target
                 self.temp_current_proportional_target = (
                     self.profile_selected.temp_current_proportional_target_get()
                 )
-
-            if self.temp_current_proportional_target:
-                self.temperature_difference = (
-                    self.temp_current_proportional_target - self.temperature
-                )
+                if (
+                    not self.temp_current_proportional_target
+                    or self.temp_current_proportional_target
+                    < self.temperature_reference
+                ):
+                    self.temp_current_proportional_target = self.temperature_reference
+            else:
+                self.temp_current_proportional_target = self.temperature_reference
+            self.temperature_difference = (
+                self.temp_current_proportional_target - self.temperature
+            )
 
     def main_loop(self):
         gc.collect()
