@@ -8,6 +8,8 @@ based on
 https://github.com/B3AU/micropython/blob/master/PID.py
 and
 https://www.embeddedrelated.com/showarticle/943.php
+and
+http://brettbeauregard.com/blog/2011/04/improving-the-beginners-pid-direction/
 """
 import time
 
@@ -25,10 +27,13 @@ class PID:
         self,
         input_fun,
         output_fun,
-        update_intervall=0.5,
+        *,  # force keyword arguments
+        update_intervall=0.1,
         P_gain=0.0,
         I_gain=0.0,
         D_gain=0.0,
+        output_min=0.0,
+        output_max=100.0,
         debug_out_print=False,
         debug_out_fun=None,
     ):
@@ -48,6 +53,9 @@ class PID:
         self.D_gain = D_gain
         self.D_value = 0
         self.D_state = 0
+
+        self.output_min = output_min
+        self.output_max = output_max
 
         self.debug_out_print = debug_out_print
         self.debug_out_fun = debug_out_fun
@@ -79,10 +87,10 @@ class PID:
         self.output = self.P_value + self.I_value - self.D_value
 
         # limit output
-        if self.output < 0:
-            self.output = 0.0
-        if self.output > 100:
-            self.output = 100.0
+        if self.output < self.output_min:
+            self.output = self.output_min
+        if self.output > self.output_max:
+            self.output = self.output_max
 
         if self.debug_out_fun or self.debug_out_print:
             debug_out = (

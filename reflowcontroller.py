@@ -14,7 +14,8 @@ HW: Adafruit PyBadge
 import json
 
 import time
-import random
+
+# import random
 import gc
 import board
 import digitalio
@@ -53,9 +54,9 @@ class ReflowController(object):
         },
         "pid": {
             "update_intervall": 0.1,
-            "P_gain": 10.0,
-            "I_gain": 0.0,
-            "D_gain": 0.0,
+            "P_gain": 20.0,
+            "I_gain": 0.2,
+            "D_gain": 2.0,
         },
         # all sub defaults for the UI are defined there.
     }
@@ -248,23 +249,17 @@ class ReflowController(object):
     def handle_heating(self):
         """Handle heating."""
         if self.temperature and self.temp_current_proportional_target:
-            # temp = self.temperature
-            diff = self.temperature_difference
+            self.pid.set_point = self.temp_current_proportional_target
             # target = self.temp_current_proportional_target
-
-            # TODO: s-light: Implement heating control
-            # maybe as PID
-            # maybe just as simple hysteresis check
-            # with prelearned timing..
-
+            # temp = self.temperature
+            # diff = self.temperature_difference
             # hysteresis = 5
             # if diff < hysteresis:
-            temp_diff_disable_heater = 8
-            if diff > temp_diff_disable_heater:
-                self.heating = True
-            else:
-                self.heating = False
-            pass
+            # temp_diff_disable_heater = 8
+            # if diff > temp_diff_disable_heater:
+            #     self.heating = True
+            # else:
+            #     self.heating = False
         else:
             self.heating = False
 
@@ -413,9 +408,9 @@ class ReflowController(object):
         return average
         # return diff, average
 
-    def temperature_update_on_change(self, temperature_temp):
-        # temp_average = self.temperature_filter_update(temperature_temp)
-        # temp_diff, temp_average = self.temperature_filter_update(temperature_temp)
+    def temperature_update_on_change(self, temperature_read):
+        # temp_average = self.temperature_filter_update(temperature_read)
+        # temp_diff, temp_average = self.temperature_filter_update(temperature_read)
         # print(
         #     "temp_diff:    {:.02f}°C \n"
         #     "temp_average: {:.02f}°C \n"
@@ -429,8 +424,8 @@ class ReflowController(object):
         # )
         # if temp_average != self.temperature:
         #     self.temperature = temp_average
-        if temperature_temp != self.temperature:
-            self.temperature = temperature_temp
+        if temperature_read != self.temperature:
+            self.temperature = temperature_read
             temp_diff = abs(self.temperature_change_last - self.temperature)
             if temp_diff >= 0.3:
                 # print(
@@ -456,8 +451,8 @@ class ReflowController(object):
     def temperature_update(self):
         self.temperature_read_error = None
         try:
-            temperature_temp = self.max31855.temperature
-            temperature_reference_temp = self.max31855.reference_temperature
+            temperature_read = self.max31855.temperature
+            temperature_reference_read = self.max31855.reference_temperature
         except RuntimeError as e:
             self.ui.print_warning("sensor: ", e)
 
@@ -479,8 +474,10 @@ class ReflowController(object):
             else:
                 raise e
         else:
-            self.temperature_reference = temperature_reference_temp
-            self.temperature_update_on_change(temperature_temp)
+            temperature_filtered = self.temperature_filter_update(temperature_read)
+            self.temperature_reference = temperature_reference_read
+            # self.temperature_update_on_change(temperature_read)
+            self.temperature_update_on_change(temperature_filtered)
 
             if self.profile_selected:
                 # temp_target = self.profile_selected.temp_current_proportional_target

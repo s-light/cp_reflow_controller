@@ -66,7 +66,7 @@ class ReflowControllerUI(object):
             },
         },
         "serial_data": {
-            "intervall": 0.5,
+            "intervall": 0.1,
         },
         "colors": {
             "off": (0, 0, 0),
@@ -190,12 +190,13 @@ class ReflowControllerUI(object):
             self.pixels[4] = color
         else:
             self.pixels[4] = self.config["colors"]["off"]
-        print(" " * 48 + "heater: {: >7.2f}".format(value), end="")
-        if value_raw:
-            print(" = {: >6}".format(value_raw))
-        else:
-            # add missing line end
-            print()
+        # print(" " * 48 + "heater: {: >7.2f}".format(value), end="")
+        # if value_raw:
+        #     print(" = {: >6}".format(value_raw), end="")
+        # else:
+        #     # add missing line end
+        #     print()
+        pass
 
     def print_temperature(self):
         if (
