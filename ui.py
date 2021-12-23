@@ -244,9 +244,6 @@ class ReflowControllerUI(object):
         return text
 
     def create_plot_data_profile(self):
-        temp_target = self.reflowcontroller.temp_current_proportional_target
-        if not temp_target:
-            temp_target = 0
         stage = 0
         if self.profile_selected:
             stage = self.profile_selected.step_current_index
@@ -255,11 +252,11 @@ class ReflowControllerUI(object):
         text = (
             # "{runtime: >7.2f}, "
             "{stage: >2d}, "
-            "{target: > 7.2f}, "
+            "{error: > 7.2f}, "
         ).format(
             # runtime=self.profile_selected.runtime,
             stage=stage * 10,
-            target=temp_target,
+            error=self.reflowcontroller.pid.error,
         )
         return text
 
@@ -268,19 +265,11 @@ class ReflowControllerUI(object):
         pid = self.reflowcontroller.pid
         if pid:
             text = (
-                "{set_point: >6.2f}, "
-                "{error: >6.2f}, "
-                "{output: >6.2f} "
-                # "{p_value: >6.2f}, "
-                # "{i_value: >6.2f}, "
-                # "{d_value: >6.2f}, "
+                "{p_value: >6.2f}, " "{i_value: >6.2f}, " "{d_value: >6.2f}, "
             ).format(
-                set_point=pid.set_point,
-                error=pid.error,
-                output=pid.output,
-                # pid_p_value=pid.P_value,
-                # pid_i_value=pid.I_value,
-                # pid_d_value=pid.D_value,
+                p_value=pid.P_value,
+                i_value=pid.I_value,
+                d_value=pid.D_value,
             )
         return text
 
@@ -288,7 +277,7 @@ class ReflowControllerUI(object):
         text = ""
         text += self.create_plot_data_system()
         text += self.create_plot_data_profile()
-        text += self.create_plot_data_pid()
+        # text += self.create_plot_data_pid()
         text += "\n"
         usb_cdc.data.write(text.encode("utf-8"))
         # print(text, end="")
@@ -586,73 +575,66 @@ class ReflowControllerUI(object):
 
     def update_ui_serial_multiline(self, replace=True):
         # update serial output
-        # temp_target = self.profile_selected.temp_current_proportional_target
-        temp_target = self.reflowcontroller.temp_current_proportional_target
-        if temp_target:
-            lines_spacing_above = self.config["display"]["serial"][
-                "lines_spacing_above"
-            ]
-            text = ""
-            lines = [
-                "stage:     '{stage}'\n",
-                "runtime:{runtime: >7.2f}s\n",
-                "target:  {orange}{target: >6.2f}{reset}°C\n",
-                "current: {current: >6.2f}°C\n",
-            ]
-            if replace:
-                for line in lines:
-                    text += "{erase_line}" + line
-            else:
-                text = lines.join("")
-            text = ("\n" * lines_spacing_above) + text
-            if replace:
-                text = "{move_to_previous_lines}" + text
-            print(
-                text.format(
-                    stage=self.profile_selected.step_current["stage"],
-                    runtime=self.profile_selected.runtime,
-                    target=temp_target,
-                    current=self.reflowcontroller.temperature,
-                    orange=terminal.colors.fg.orange,
-                    reset=terminal.colors.reset,
-                    move_to_previous_lines=terminal.control.cursor.previous_line(
-                        len(lines) + lines_spacing_above
-                    ),
-                    erase_line=terminal.control.erase_line(0),
+        lines_spacing_above = self.config["display"]["serial"]["lines_spacing_above"]
+        text = ""
+        lines = [
+            "stage:     '{stage}'\n",
+            "runtime:{runtime: >7.2f}s\n",
+            "target:  {orange}{target: >6.2f}{reset}°C\n",
+            "current: {current: >6.2f}°C\n",
+        ]
+        if replace:
+            for line in lines:
+                text += "{erase_line}" + line
+        else:
+            text = lines.join("")
+        text = ("\n" * lines_spacing_above) + text
+        if replace:
+            text = "{move_to_previous_lines}" + text
+        print(
+            text.format(
+                stage=self.profile_selected.step_current["stage"],
+                runtime=self.profile_selected.runtime,
+                target=self.reflowcontroller.heater_target,
+                current=self.reflowcontroller.temperature,
+                orange=terminal.colors.fg.orange,
+                reset=terminal.colors.reset,
+                move_to_previous_lines=terminal.control.cursor.previous_line(
+                    len(lines) + lines_spacing_above
                 ),
-                end="",
-            )
+                erase_line=terminal.control.erase_line(0),
+            ),
+            end="",
+        )
 
     def update_ui_serial_singleline(self, replace=False, end="\n"):
         # update serial output
-        temp_target = self.reflowcontroller.temp_current_proportional_target
-        if temp_target:
-            text = (
-                "{stage: <10} "
-                "{runtime: >7.2f}s "
-                "t: {orange}{target: > 7.2f}{reset}°C "
-                "c: {current: > 7.2f}°C "
-                "d: {error: > 7.2f}°C "
-            )
-            # if replace:
-            #     text += "{erase_line}" + text
-            # text = ("\n" * lines_spacing_above) + text
-            # if replace:
-            #     text = "{move_to_previous_lines}" + text
-            print(
-                text.format(
-                    stage=self.profile_selected.step_current["stage"],
-                    runtime=self.profile_selected.runtime,
-                    target=temp_target,
-                    current=self.reflowcontroller.temperature,
-                    error=self.reflowcontroller.pid.error,
-                    orange=terminal.colors.fg.orange,
-                    reset=terminal.colors.reset,
-                    move_to_previous_lines=terminal.control.cursor.previous_line(1),
-                    erase_line=terminal.control.erase_line(0),
-                ),
-                end=end,
-            )
+        text = (
+            "{stage: <10} "
+            "{runtime: >7.2f}s "
+            "t: {orange}{target: > 7.2f}{reset}°C "
+            "c: {current: > 7.2f}°C "
+            "d: {error: > 7.2f}°C "
+        )
+        # if replace:
+        #     text += "{erase_line}" + text
+        # text = ("\n" * lines_spacing_above) + text
+        # if replace:
+        #     text = "{move_to_previous_lines}" + text
+        print(
+            text.format(
+                stage=self.profile_selected.step_current["stage"],
+                runtime=self.profile_selected.runtime,
+                target=self.reflowcontroller.heater_target,
+                current=self.reflowcontroller.temperature,
+                error=self.reflowcontroller.pid.error,
+                orange=terminal.colors.fg.orange,
+                reset=terminal.colors.reset,
+                move_to_previous_lines=terminal.control.cursor.previous_line(1),
+                erase_line=terminal.control.erase_line(0),
+            ),
+            end=end,
+        )
 
     def reflow_update_ui_serial(self, replace=True):
         # self.update_ui_serial_multiline(replace)
@@ -779,19 +761,19 @@ class ReflowControllerUI(object):
                 self.reflowcontroller.pid.P_gain = value
         if "pid i" in input_string:
             value = self.parse_value(input_string, "pid i")
-            if value:
+            if helper.is_number(value):
                 self.reflowcontroller.pid.I_gain = value
         if "pid d" in input_string:
             value = self.parse_value(input_string, "pid d")
-            if value:
+            if helper.is_number(value):
                 self.reflowcontroller.pid.D_gain = value
         if "pid s" in input_string:
             value = self.parse_value(input_string, "pid s")
-            if value:
+            if helper.is_number(value):
                 self.reflowcontroller.pid.set_point = value
         if "h" in input_string:
             value = self.parse_value(input_string, "h")
-            if value:
+            if helper.is_number(value):
                 self.reflowcontroller.heater_target = value
         # prepare new input
         self.print_help()

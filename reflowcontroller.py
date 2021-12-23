@@ -176,7 +176,6 @@ class ReflowController(object):
         self.temperature_reference = None
         self.temperature_changed = False
         self.temperature_change_last = False
-        self.temp_current_proportional_target = None
         self.temperature_list = []
 
         self.temperature_update()
@@ -269,6 +268,16 @@ class ReflowController(object):
         self.pid.set_point = value
         return value
 
+    def set_heater_target_to_profile_target(self):
+        target = self.profile_selected.temp_current_proportional_target_get()
+        if self.temperature and target:
+            if target < self.temperature_reference:
+                target = self.temperature_reference
+            self.heater_target = target
+        else:
+            self.heater_target = False
+        return self.heater_target
+
     ##########################################
     # state handling
 
@@ -327,10 +336,6 @@ class ReflowController(object):
 
     def reflow_update(self):
         # handle heater_target with currently selected profile..
-        if self.temperature and self.temp_current_proportional_target:
-            self.heater_target = self.temp_current_proportional_target
-        else:
-            self.heater_target = False
 
         profile_running = self.profile_selected.step_next_check_and_do()
         # print("profile_running", profile_running)
@@ -434,13 +439,9 @@ class ReflowController(object):
             temperature_read = self.max31855.temperature
             temperature_reference_read = self.max31855.reference_temperature
         except RuntimeError as e:
-            self.ui.print_warning("sensor: ", e)
-
-            # self.temperature = None
-            # self.temperature_reference = None
-            self.temp_current_proportional_target = None
             self.temperature_changed = False
             self.temperature_read_error = e
+            self.ui.print_warning("sensor: ", e)
             e_message = e.args[0]
             if "short circuit to ground" in e_message:
                 pass
@@ -457,22 +458,9 @@ class ReflowController(object):
             self.temperature_reference = helper.round_nearest(
                 self.temperature_reference_raw, 0.25
             )
-            self.temperature_update_on_change(temperature_read)
             # temperature_filtered = self.temperature_filter_update(temperature_read)
             # self.temperature_update_on_change(temperature_filtered)
-
-            if self.profile_selected:
-                self.temp_current_proportional_target = (
-                    self.profile_selected.temp_current_proportional_target_get()
-                )
-                if (
-                    not self.temp_current_proportional_target
-                    or self.temp_current_proportional_target
-                    < self.temperature_reference
-                ):
-                    self.temp_current_proportional_target = self.temperature_reference
-            else:
-                self.temp_current_proportional_target = self.temperature_reference
+            self.temperature_update_on_change(temperature_read)
 
     def main_loop(self):
         gc.collect()

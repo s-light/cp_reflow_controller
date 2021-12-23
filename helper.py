@@ -6,6 +6,22 @@ collection of some small helper functions
 """
 
 
+def is_number(s):
+    """
+    Return true if string is a number.
+
+    based on
+    https://stackoverflow.com/questions/354038/how-do-i-check-if-a-string-is-a-number-float
+    """
+    try:
+        float(s)
+    except ValueError:
+        # return NaN
+        return False
+    else:
+        return True
+
+
 def limit(value, value_min, value_max):
     return max(min(value_max, value), value_min)
 
