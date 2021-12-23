@@ -23,6 +23,8 @@ from adafruit_pybadger import pybadger
 import displayio
 from adafruit_displayio_layout.widgets.cartesian import Cartesian
 
+import helper
+
 from configdict import extend_deep
 import ASCII_escape_code as terminal
 from state import State
@@ -119,8 +121,8 @@ class ReflowControllerUI(object):
             y=2,  # y plane position
             width=128,  # display width
             height=105,  # display height
-            xrange=(0, self.round_int_up(self.profile_selected.duration)),
-            yrange=(0, self.round_int_up(self.profile_selected.max_temperatur)),
+            xrange=(0, helper.round_up(self.profile_selected.duration)),
+            yrange=(0, helper.round_up(self.profile_selected.max_temperatur)),
         )
 
         self.main_group = displayio.Group()
@@ -135,12 +137,6 @@ class ReflowControllerUI(object):
 
     ##########################################
     # helper functions
-    @staticmethod
-    def round_int_up(value, round_to=10):
-        """round integer up to next `round_to` value.
-        based on: https://stackoverflow.com/a/14092788/574981
-        """
-        return value + (-value) % round_to
 
     def pixels_set_proportional(
         self, value, count, pixel_count=None, color_on=None, color_off=None
@@ -166,11 +162,11 @@ class ReflowControllerUI(object):
         # prepare display update timing
         self.my_plane.xrange = (
             self.my_plane.xrange[0],
-            self.round_int_up(self.profile_selected.duration),
+            helper.round_up(self.profile_selected.duration),
         )
         self.my_plane.yrange = (
             self.my_plane.yrange[0],
-            self.round_int_up(self.profile_selected.max_temperatur),
+            helper.round_up(self.profile_selected.max_temperatur),
         )
         # if self.my_plane.xrange[1] < self.my_plane._width:
         #     pass
@@ -254,15 +250,17 @@ class ReflowControllerUI(object):
             # "\n"
             # "{runtime: >7.2f}, "
             "{stage: >2d}, "
-            "{heating: >6.2f}, "
-            "{current: >6.2f}, "
-            "{target: >6.2f}, "
-            "{diff: >6.2f}, "
+            "{heater: > 7.2f}, "
+            "{current: > 7.2f}, "
+            "{set_point: > 7.2f}, "
+            "{target: > 7.2f}, "
+            "{diff: > 7.2f}, "
         ).format(
             stage=stage,
             # runtime=self.profile_selected.runtime,
-            heating=self.reflowcontroller.heating * 10,
+            heater=self.reflowcontroller.heater_pwm,
             current=current,
+            set_point=self.reflowcontroller.heating,
             target=temp_target,
             diff=diff,
         )
@@ -273,14 +271,14 @@ class ReflowControllerUI(object):
         pid = self.reflowcontroller.pid
         if pid:
             text = (
-                "{set_point: >6.2f}, "
+                # "{set_point: >6.2f}, "
                 "{error: >6.2f}, "
                 "{output: >6.2f} "
                 # "{p_value: >6.2f}, "
                 # "{i_value: >6.2f}, "
                 # "{d_value: >6.2f}, "
             ).format(
-                set_point=pid.set_point,
+                # set_point=pid.set_point,
                 error=pid.error,
                 output=pid.output,
                 # pid_p_value=pid.P_value,
@@ -398,10 +396,10 @@ class ReflowControllerUI(object):
 
     def states_standby_update(self):
         # update display
-        if self.reflowcontroller.temperature_changed:
-            self.reflowcontroller.temperature_changed = False
-            # print("Temperature: {:.02f}°C ".format(self.reflowcontroller.temperature))
-            self.print_temperature()
+        # if self.reflowcontroller.temperature_changed:
+        #     self.reflowcontroller.temperature_changed = False
+        #     # print("Temperature: {:.02f}°C ".format(self.reflowcontroller.temperature))
+        #     self.print_temperature()
         if self.buttons.a.rose:
             self.buttons.a.update()
             self.switch_to_state("calibration_prepare")
@@ -478,7 +476,7 @@ class ReflowControllerUI(object):
         # set special temperature range:
         self.my_plane.yrange = (
             self.my_plane.yrange[0],
-            self.round_int_up(self.profile_selected.max_temperatur) + 20,
+            helper.round_up(self.profile_selected.max_temperatur) + 20,
         )
         print("\n" * self.config["display"]["serial"]["lines_spacing_above"])
         self.my_plane.clear_plot_lines()
@@ -737,6 +735,7 @@ class ReflowControllerUI(object):
             "- 'pid i': integral gain     ({pid_i: >8.5f})\n"
             "- 'pid d': derivative gain   ({pid_d: >8.5f})\n"
             "- 'pid s': set_point         ({pid_s: >8.5f})\n"
+            "- 'heating': set heating target ({heating: > 7.2f})\n"
             "- 'p' select next profil\n"
             "{profile_list}"
             "- 'calibrate'\n"
@@ -748,6 +747,7 @@ class ReflowControllerUI(object):
                 pid_i=self.reflowcontroller.pid.I_gain,
                 pid_d=self.reflowcontroller.pid.D_gain,
                 pid_s=self.reflowcontroller.pid.set_point,
+                heating=self.reflowcontroller.heating,
             ),
             end="",
         )
@@ -791,6 +791,10 @@ class ReflowControllerUI(object):
             value = self.parse_value(input_string, "pid s")
             if value:
                 self.reflowcontroller.pid.set_point = value
+        if "heating" in input_string:
+            value = self.parse_value(input_string, "heating")
+            if value:
+                self.reflowcontroller.heating = value
         # prepare new input
         self.print_help()
         print(">> ", end="")

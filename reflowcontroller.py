@@ -25,7 +25,7 @@ import adafruit_max31855
 
 from configdict import extend_deep
 
-from helper import limit
+import helper
 
 from state import State
 
@@ -194,16 +194,17 @@ class ReflowController(object):
     # heating managment
 
     def pid_update_output(self, value):
-        self.heating = value
+        self.heater_pwm = value
 
     def pid_update_input(self):
         return self.temperature
 
     def heating_setup(self):
-        # self._heating = digitalio.DigitalInOut(self.get_pin("heating_pin"))
-        # self._heating.direction = digitalio.Direction.OUTPUT
-        self._heating = pwmio.PWMOut(self.get_pin("heating_pin"), frequency=300)
-        self.heating = False
+        # self._heater_pwm = digitalio.DigitalInOut(self.get_pin("heating_pin"))
+        # self._heater_pwm.direction = digitalio.Direction.OUTPUT
+        self._heater_pwm = pwmio.PWMOut(self.get_pin("heating_pin"), frequency=300)
+        # manually set heater off
+        self._heater_pwm.duty_cycle = 65535
         self.pid = pid.PID(
             self.pid_update_input,
             self.pid_update_output,
@@ -213,43 +214,60 @@ class ReflowController(object):
             D_gain=self.config["pid"]["D_gain"],
             debug_out_print=True,
         )
-        # default to minimal 18°C
-        self.pid.set_point = 18
+        self.heating = False
+        # print("heating_setup done:", self.heating)
 
     @property
-    def heating(self):
-        # return not self._heating.value
-        value_inverted = self._heating.duty_cycle / 65535
+    def heater_pwm(self):
+        # return not self._heater_pwm.value
+        value_inverted = self._heater_pwm.duty_cycle / 65535
         value = 1.0 - value_inverted
         return value
 
-    @heating.setter
-    def heating(self, value):
+    @heater_pwm.setter
+    def heater_pwm(self, value):
         # digital io
         # invert value
         # value = not value
-        # if self._heating.value != value:
-        #     self._heating.value = value
+        # if self._heater_pwm.value != value:
+        #     self._heater_pwm.value = value
         #     # something changed!
         #     if hasattr(self, "ui"):
         #         self.ui.show_heater_state(not value)
-        # return not self._heating.value
+        # return not self._heater_pwm.value
         # pwm io
-        value = limit(value, 0.0, 1.0)
+        value = helper.limit(value, 0.0, 1.0)
         value_inverted = 1.0 - value
         duty_cycle = int(65535 * value_inverted)
-        if self._heating.duty_cycle != duty_cycle:
-            self._heating.duty_cycle = duty_cycle
+        if self._heater_pwm.duty_cycle != duty_cycle:
+            self._heater_pwm.duty_cycle = duty_cycle
             # something changed!
             if hasattr(self, "ui"):
-                self.ui.show_heater_state(value, self._heating.duty_cycle)
-        # return self._heating.duty_cycle
+                self.ui.show_heater_state(value, self._heater_pwm.duty_cycle)
+        # return self._heater_pwm.duty_cycle
         return value
 
-    def handle_heating(self):
+    @property
+    def heating(self):
+        return self.pid.set_point
+
+    @heating.setter
+    def heating(self, value):
+        print("heating.setter: value", value, end="")
+        if value is False or value is None:
+            if self.temperature_reference:
+                value = helper.round_nearest(self.temperature_reference, 0.25)
+            else:
+                # fallback to 18°C
+                value = 18
+        print(" →", value)
+        self.pid.set_point = value
+        return value
+
+    def handle_heater_pwm(self):
         """Handle heating."""
         if self.temperature and self.temp_current_proportional_target:
-            self.pid.set_point = self.temp_current_proportional_target
+            self.heating = self.temp_current_proportional_target
             # target = self.temp_current_proportional_target
             # temp = self.temperature
             # diff = self.temperature_difference
@@ -321,7 +339,7 @@ class ReflowController(object):
 
     def reflow_update(self):
         # handle heating with currently selected profile..
-        self.handle_heating()
+        self.handle_heater_pwm()
 
         profile_running = self.profile_selected.step_next_check_and_do()
         # print("profile_running", profile_running)
@@ -361,35 +379,6 @@ class ReflowController(object):
         what do we want to get?!
         StepTime?
         """
-        # TODO: s-light: implement calibration routine
-        # profile = self.profile_selected
-        # if self.temperature and profile.step_current:
-        #     # temp = self.temperature
-        #     diff = self.temperature_difference
-        #     # target = self.temp_current_proportional_target
-        #
-        #     # TODO: s-light: Implement heating control
-        #     # maybe as PID
-        #     # maybe just as simple hysteresis check
-        #     # with prelearned timing..
-        #
-        #     # hysteresis = 5
-        #     # if diff < hysteresis:
-        #     temp_diff_disable_heater = 8
-        #     if diff > temp_diff_disable_heater:
-        #         self.heating = True
-        #     else:
-        #         self.heating = False
-        #     pass
-        # else:
-        #     self.heating = False
-        #
-        # if (
-        #     profile.step_current
-        #     and profile.runtime > profile.step_current["runtime_end"]
-        # ):
-        #     # self.step_next()
-        #     pass
         self.reflow_update()
 
     def calibrate_finished(self):
@@ -474,10 +463,10 @@ class ReflowController(object):
             else:
                 raise e
         else:
-            temperature_filtered = self.temperature_filter_update(temperature_read)
             self.temperature_reference = temperature_reference_read
-            # self.temperature_update_on_change(temperature_read)
-            self.temperature_update_on_change(temperature_filtered)
+            self.temperature_update_on_change(temperature_read)
+            # temperature_filtered = self.temperature_filter_update(temperature_read)
+            # self.temperature_update_on_change(temperature_filtered)
 
             if self.profile_selected:
                 # temp_target = self.profile_selected.temp_current_proportional_target
