@@ -33,6 +33,11 @@ class Felder_ISO_Cream_Clear(profiles.Profile):
             {
                 "stage": "cool",
                 "duration": 70,
-                "temp_target": 0,
+                "temp_target": 45,
             },
+            # {
+            #     "stage": "cool_save",
+            #     "duration": 10,
+            #     "temp_target": 0,
+            # },
         ]

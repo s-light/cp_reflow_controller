@@ -700,7 +700,7 @@ class ReflowControllerUI(object):
             "- 'pid p': proportional gain ({pid_p: >8.5f})\n"
             "- 'pid i': integral gain     ({pid_i: >8.5f})\n"
             "- 'pid d': derivative gain   ({pid_d: >8.5f})\n"
-            "- 'pid s': set_point         ({pid_s: >8.5f})\n"
+            # "- 'pid s': set_point         ({pid_s: >8.5f})\n"
             "- 'h': set heater_target ({heater_target: > 7.2f})\n"
             "- 'p' select next profil\n"
             "{profile_list}"
@@ -712,7 +712,7 @@ class ReflowControllerUI(object):
                 pid_p=self.reflowcontroller.pid.P_gain,
                 pid_i=self.reflowcontroller.pid.I_gain,
                 pid_d=self.reflowcontroller.pid.D_gain,
-                pid_s=self.reflowcontroller.pid.set_point,
+                # pid_s=self.reflowcontroller.pid.set_point,
                 heater_target=self.reflowcontroller.heater_target,
             ),
             end="",
@@ -746,6 +746,7 @@ class ReflowControllerUI(object):
     def check_input(self):
         """Check Input."""
         input_string = input()
+        # sys.stdin.read(1)
         if "calibrate" in input_string:
             # self.calibrate()
             self.switch_to_state("calibration_prepare")
@@ -767,10 +768,10 @@ class ReflowControllerUI(object):
             value = self.parse_value(input_string, "pid d")
             if helper.is_number(value):
                 self.reflowcontroller.pid.D_gain = value
-        if "pid s" in input_string:
-            value = self.parse_value(input_string, "pid s")
-            if helper.is_number(value):
-                self.reflowcontroller.pid.set_point = value
+        # if "pid s" in input_string:
+        #     value = self.parse_value(input_string, "pid s")
+        #     if helper.is_number(value):
+        #         self.reflowcontroller.pid.set_point = value
         if "h" in input_string:
             value = self.parse_value(input_string, "h")
             if helper.is_number(value):

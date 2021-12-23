@@ -83,6 +83,7 @@ class Profile(object):
         # print("Profile:", self.__name__)
         # self.print_steps(long=True)
         self.runtime_start = -1
+        self.temperature_min = 18
 
     @property
     def runtime(self):
@@ -234,9 +235,10 @@ class Profile(object):
         return step
 
     # reflow process
-    def start(self):
+    def start(self, *, temperature_min):
         self.step_start()
         self.runtime_start = time.monotonic()
+        self.temperature_min = temperature_min
 
     def step_next_check_and_do(self, lines_move=17):
         running = True
@@ -283,16 +285,22 @@ class Profile(object):
         if self.step_current:
             if self.step_current["duration"] == 0:
                 current_target = self.step_current["temp_target"]
+                if current_target < self.temperature_min:
+                    current_target = self.temperature_min
             else:
                 step_runtime = self.runtime - self.step_current["runtime_start"]
-                temp_dif = (
-                    self.step_current["temp_target"] - self.step_current["temp_start"]
-                )
+                temp_target = self.step_current["temp_target"]
+                temp_start = self.step_current["temp_start"]
+                if temp_start < self.temperature_min:
+                    temp_start = self.temperature_min
+                if temp_target < self.temperature_min:
+                    temp_target = self.temperature_min
+                temp_dif = temp_target - temp_start
                 # duration     = 100% = temp_target
                 # step_runtime =    x = current_target
                 current_target = (
                     temp_dif * step_runtime / self.step_current["duration"]
-                ) + self.step_current["temp_start"]
+                ) + temp_start
         return current_target
 
 

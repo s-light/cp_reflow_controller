@@ -54,9 +54,9 @@ class ReflowController(object):
         },
         "pid": {
             "update_intervall": 0.1,
-            "P_gain": 20.0,
-            "I_gain": 0.2,
-            "D_gain": 0.5,
+            "P_gain": 10.0,
+            "I_gain": 0.1,
+            "D_gain": 1.0,
         },
         # all sub defaults for the UI are defined there.
     }
@@ -332,7 +332,7 @@ class ReflowController(object):
 
     # handling actuall reflow process
     def reflow_start(self):
-        self.profile_selected.start()
+        self.profile_selected.start(self.temperature_reference)
 
     def reflow_update(self):
         # handle heater_target with currently selected profile..
@@ -366,7 +366,7 @@ class ReflowController(object):
 
     # calibrate
     def calibrate_start(self):
-        self.profile_selected.start()
+        self.profile_selected.start(self.temperature_reference)
 
     def calibrate_update(self):
         """

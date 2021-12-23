@@ -17,7 +17,7 @@ class TestDev_Profile_Slow(profiles.Profile):
         self.steps = [
             {
                 "stage": "preheat",
-                "duration": 10,
+                "duration": 20,
                 "temp_target": 30,
             },
             {
@@ -27,12 +27,12 @@ class TestDev_Profile_Slow(profiles.Profile):
             },
             {
                 "stage": "reflow",
-                "duration": 10,
-                "temp_target": 60,
+                "duration": 30,
+                "temp_target": 80,
             },
             {
                 "stage": "cool",
-                "duration": 60,
+                "duration": 120,
                 "temp_target": 0,
             },
         ]
