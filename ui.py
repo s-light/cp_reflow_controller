@@ -702,7 +702,7 @@ class ReflowControllerUI(object):
             "- 'pid d': derivative gain   ({pid_d: >8.5f})\n"
             # "- 'pid s': set_point         ({pid_s: >8.5f})\n"
             "- 'h': set heater_target ({heater_target: > 7.2f})\n"
-            "- 'p' select next profil\n"
+            "- 'pn' select next profil\n"
             "{profile_list}"
             "- 'calibrate'\n"
             "- 'start' reflow cycle\n"
@@ -754,7 +754,7 @@ class ReflowControllerUI(object):
             self.switch_to_state("reflow_prepare")
         if "stop" in input_string:
             self.menu_reflowcycle_stop()
-        if "profile" in input_string:
+        if "pn" in input_string:
             self.reflowcontroller.profile_select_next()
         if "pid p" in input_string:
             value = self.parse_value(input_string, "pid p")
