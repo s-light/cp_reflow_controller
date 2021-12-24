@@ -12,27 +12,27 @@ class TestDev_Profile_Slow(profiles.Profile):
         self.title = "TestDev Profile Slow "
         self.title_short = "TestDev Profile Slow"
         self.alloy = "42"
-        self.melting_point = 35
+        self.melting_point = 120
         self.reference = "https://blog.s-light.eu/hot-plate-smd-soldering/"
         self.steps = [
             {
                 "stage": "preheat",
                 "duration": 20,
-                "temp_target": 30,
+                "temp_target": 40,
             },
             {
                 "stage": "soak",
                 "duration": 20,
-                "temp_target": 50,
+                "temp_target": 60,
             },
             {
                 "stage": "reflow",
                 "duration": 30,
-                "temp_target": 80,
+                "temp_target": 120,
             },
             {
                 "stage": "cool",
-                "duration": 120,
+                "duration": 180,
                 "temp_target": 0,
             },
         ]

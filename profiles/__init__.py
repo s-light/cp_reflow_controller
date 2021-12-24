@@ -245,18 +245,18 @@ class Profile(object):
         if self.step_current and self.runtime > self.step_current["runtime_end"]:
             if self.step_next() is not None:
                 print(
-                    "{prev_line}{erase_line}"
+                    # "{prev_line}{erase_line}"
                     "reflowcycle: switched to {stage}\n\n"
-                    "{next_line}"
+                    # "{next_line}"
                     "".format(
                         stage=self.step_current["stage"],
-                        prev_line=terminal.control.cursor.previous_line(
-                            lines_move - (self.step_current_index + 1)
-                        ),
-                        erase_line=terminal.control.erase_line(0),
-                        next_line=terminal.control.cursor.next_line(lines_move),
+                        # prev_line=terminal.control.cursor.previous_line(
+                        #     lines_move - (self.step_current_index + 1)
+                        # ),
+                        # erase_line=terminal.control.erase_line(0),
+                        # next_line=terminal.control.cursor.next_line(lines_move),
                     ),
-                    end="",
+                    # end="",
                 )
                 self.step_current_index
                 # print(

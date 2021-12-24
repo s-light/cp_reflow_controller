@@ -151,5 +151,6 @@ class PID:
             output = self._update(current_value)
             self.output_fun(output)
             self.last_update_time = time.monotonic()
-            print()
+            if self.debug_out_print:
+                print()
         return output

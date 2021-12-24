@@ -32,7 +32,9 @@ class Felder_ISO_Cream_Clear(profiles.Profile):
             },
             {
                 "stage": "cool",
-                "duration": 70,
+                # datasheet says 70s
+                # we currently have no active cooling
+                "duration": 180,
                 "temp_target": 45,
             },
             # {

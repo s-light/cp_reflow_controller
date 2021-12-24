@@ -15,7 +15,7 @@ def is_number(s):
     """
     try:
         float(s)
-    except ValueError:
+    except TypeError:
         # return NaN
         return False
     else:

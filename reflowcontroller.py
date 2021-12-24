@@ -216,7 +216,7 @@ class ReflowController(object):
             P_gain=self.config["pid"]["P_gain"],
             I_gain=self.config["pid"]["I_gain"],
             D_gain=self.config["pid"]["D_gain"],
-            debug_out_print=True,
+            # debug_out_print=True,
         )
         self.heater_target = False
         # print("heater_setup done:", self.heater)
@@ -270,13 +270,13 @@ class ReflowController(object):
 
     def set_heater_target_to_profile_target(self):
         target = self.profile_selected.temp_current_proportional_target_get()
-        if self.temperature and target:
+        if target:
             if target < self.temperature_reference:
                 target = self.temperature_reference
-            self.heater_target = target
         else:
-            self.heater_target = False
-        return self.heater_target
+            target = False
+        self.heater_target = target
+        return target
 
     ##########################################
     # state handling
@@ -332,11 +332,11 @@ class ReflowController(object):
 
     # handling actuall reflow process
     def reflow_start(self):
-        self.profile_selected.start(self.temperature_reference)
+        self.profile_selected.start(temperature_min=self.temperature_reference)
 
     def reflow_update(self):
         # handle heater_target with currently selected profile..
-
+        self.set_heater_target_to_profile_target()
         profile_running = self.profile_selected.step_next_check_and_do()
         # print("profile_running", profile_running)
         if profile_running is False:
@@ -352,21 +352,8 @@ class ReflowController(object):
 
     ##########################################
     # calibration functions
-    def calibration(self):
-        """calibration routin."""
-
-        # for duration in range(60):
-        for duration in range(10):
-            # self.heater_target.value = not self.heater_target.value
-            # time.sleep(1)
-            self.heater_target.value = True
-            time.sleep(0.2)
-            self.heater_target.value = False
-            time.sleep(0.8)
-
-    # calibrate
     def calibrate_start(self):
-        self.profile_selected.start(self.temperature_reference)
+        self.profile_selected.start(temperature_min=self.temperature_reference)
 
     def calibrate_update(self):
         """

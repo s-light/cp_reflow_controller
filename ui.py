@@ -383,10 +383,10 @@ class ReflowControllerUI(object):
 
     def states_standby_update(self):
         # update display
-        # if self.reflowcontroller.temperature_changed:
-        #     self.reflowcontroller.temperature_changed = False
-        #     # print("Temperature: {:.02f}°C ".format(self.reflowcontroller.temperature))
-        #     self.print_temperature()
+        if self.reflowcontroller.temperature_changed:
+            self.reflowcontroller.temperature_changed = False
+            # print("Temperature: {:.02f}°C ".format(self.reflowcontroller.temperature))
+            self.print_temperature()
         if self.buttons.a.rose:
             self.buttons.a.update()
             self.switch_to_state("calibration_prepare")
