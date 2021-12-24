@@ -25,15 +25,24 @@ class Felder_ISO_Cream_Clear(profiles.Profile):
                 "duration": 90,
                 "temp_target": 200,
             },
+            # datasheet says:
+            # about 40s
+            # and 60-90s in liquid state -> above  ~120°C
             {
                 "stage": "reflow",
-                "duration": 40,
+                "duration": 30,
+                "temp_target": 220,
+            },
+            {
+                "stage": "reflow_hold",
+                "duration": 60,
                 "temp_target": 245,
             },
             {
                 "stage": "cool",
                 # datasheet says 70s
                 # we currently have no active cooling
+                # so we have to wait...
                 "duration": 180,
                 "temp_target": 45,
             },

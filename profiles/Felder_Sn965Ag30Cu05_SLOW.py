@@ -27,8 +27,13 @@ class Felder_ISO_Cream_Clear_SLOW(profiles.Profile):
             },
             {
                 "stage": "reflow",
-                "duration": 50,
+                "duration": 30,
                 "temp_target": 240,
+            },
+            {
+                "stage": "reflow_hold",
+                "duration": 60,
+                "temp_target": 245,
             },
             {
                 "stage": "cool",
