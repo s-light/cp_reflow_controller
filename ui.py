@@ -739,7 +739,7 @@ class ReflowControllerUI(object):
     def userinput_event_handling__pid(self, input_string):
         if input_string.startswith("pid p"):
             value = nb_serial.parse_value(input_string, "pid p")
-            if value:
+            if nb_serial.is_number(value):
                 self.reflowcontroller.pid.P_gain = value
         elif input_string.startswith("pid i"):
             value = nb_serial.parse_value(input_string, "pid i")
