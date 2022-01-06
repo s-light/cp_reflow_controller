@@ -4,10 +4,24 @@
 
 Adafruit-Blinka
 
-Adafruit-CircuitPython-pybadger
-Adafruit-CircuitPython-debouncer
-Adafruit-CircuitPython-max31855
+
+
+Adafruit-CircuitPython-bitmap-font
+Adafruit-CircuitPython-display-notification
+Adafruit-CircuitPython-display-shapes
+Adafruit-CircuitPython-display-text
 Adafruit-CircuitPython-displayio-layout
+Adafruit-CircuitPython-pybadger
+Adafruit-CircuitPython-register
+Adafruit-CircuitPython-button
+Adafruit-CircuitPython-debouncer
+Adafruit-CircuitPython-lis3dh
+Adafruit-CircuitPython-max31855
+Adafruit-CircuitPython-mcp9600
+Adafruit-CircuitPython-miniqr
+Adafruit-CircuitPython-touchscreen
+
+CircuitPython-neopixel
 
 CircuitPython-ansi-escape-code
 CircuitPython-nonblocking-serialinput

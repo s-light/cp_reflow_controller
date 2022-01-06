@@ -108,6 +108,7 @@ class ReflowControllerUI(object):
             echo=True,
             statusline=True,
             statusline_intervall=1.0,
+            statusline_fn=self.statusline_fn,
         )
         self.print = self.my_input.print
         self.reflowcontroller.print = self.my_input.print
@@ -403,10 +404,6 @@ class ReflowControllerUI(object):
 
     def states_standby_update(self):
         # update display
-        if self.reflowcontroller.temperature_changed:
-            self.reflowcontroller.temperature_changed = False
-            # self.print("Temperature: {:.02f}°C ".format(self.reflowcontroller.temperature))
-            self.print_temperature()
         if self.buttons.a.rose:
             self.buttons.a.update()
             self.switch_to_state("calibration_prepare")
@@ -523,9 +520,6 @@ class ReflowControllerUI(object):
         self.print("")
 
     def states_calibration_done_update(self):
-        if self.reflowcontroller.temperature_changed:
-            self.reflowcontroller.temperature_changed = False
-            self.print_temperature()
         if self.buttons.start.rose:
             self.buttons.start.update()
             self.switch_to_state("standby")
@@ -541,9 +535,11 @@ class ReflowControllerUI(object):
     ####################
     # reflow_prepare
     def states_reflow_prepare_enter(self):
+        # clear full screen
+        self.print(terminal.ANSIControl.erase_display(2))
         self.print("Do you really want to start the reflow cycle?")
         self.print("selected profil:")
-        self.profile_selected.print_profile()
+        self.print(self.profile_selected.format_profile())
 
         # for the small screen
         self.print("selected profil:")
@@ -653,7 +649,7 @@ class ReflowControllerUI(object):
                 move_to_previous_lines=terminal.control.cursor.previous_line(1),
                 erase_line=terminal.control.erase_line(0),
             ),
-            end=end,
+            # end=end,
         )
 
     def reflow_update_ui_serial(self, replace=True):
@@ -701,7 +697,7 @@ class ReflowControllerUI(object):
     ##########################################
     # menu
 
-    def print_help(self):
+    def userinput_print_help(self):
         """Print Help."""
         profile_list = ""
         # for name, profile in self.profiles.items():
@@ -735,9 +731,8 @@ class ReflowControllerUI(object):
                 # pid_s=self.reflowcontroller.pid.set_point,
                 heater_target=self.reflowcontroller.heater_target,
             ),
-            end="",
+            # end="",
         )
-        self.print_temperature()
 
     def userinput_event_handling__pid(self, input_string):
         if input_string.startswith("pid p"):
@@ -775,6 +770,71 @@ class ReflowControllerUI(object):
             if helper.is_number(value):
                 self.reflowcontroller.heater_target = value
 
+    statusline_template = (
+        "uptime:{uptime: >8.2f}    "
+        # "temp: {current_color}{current: >6.02f}{reset}°C   "
+        "temp: {current: >6.02f}°C   "
+        "target: {target: >6.02f}°C   "
+        "error: {error: >6.02f}°C   "
+        "step: {step: <11s}   "
+        "runtime: {step_runtime: >7.2f}s"
+    )
+
+    def statusline_fn(self):
+        """
+        Generate statusline.
+
+        NO prints in this function!!
+        (leads to infinity loops..)
+
+        line content:
+
+        uptime:00000.00
+        temp: 000.00°C
+        target: 000.00°C
+        error: 000.00°C
+        step: STAGENAME_
+        runtime: 0000.00s
+
+        """
+
+        # this does not work in that easy way...
+        # current_color = terminal.ANSIColors.fg.lightblue
+        # if self.reflowcontroller.temperature_changed:
+        #     # self.reflowcontroller.temperature_changed = False
+        #     # print("\n" * 5 + "tch" + "\n" * 5)
+        #     current_color = terminal.ANSIColors.fg.orange
+        temperature_current = 0
+        if (
+            self.reflowcontroller.temperature
+            and self.reflowcontroller.temperature_reference
+        ):
+            temperature_current = self.reflowcontroller.temperature
+        temperature_target = self.reflowcontroller.heater_target
+        temperature_error = 0
+        if hasattr(self.reflowcontroller.pid, "error"):
+            temperature_error = self.reflowcontroller.pid.error
+
+        step = "***"
+        step_runtime = -1
+        if self.profile_selected:
+            if self.profile_selected.step_current:
+                step = self.profile_selected.step_current["step"]
+                step_runtime = self.profile_selected.runtime
+
+        statusline = self.statusline_template.format(
+            uptime=time.monotonic(),
+            # current_color=current_color,
+            current=temperature_current,
+            target=temperature_target,
+            error=temperature_error,
+            step=step,
+            step_runtime=step_runtime,
+            reset=terminal.ANSIColors.reset,
+        )
+
+        return statusline
+
     @staticmethod
     def input_parse_pixel_set(input_string):
         """parse pixel_set."""
@@ -805,8 +865,7 @@ class ReflowControllerUI(object):
         self.state_current.update()
         # self.display_update()
         self.usb_cdc_data_update()
-        if supervisor.runtime.serial_bytes_available:
-            self.check_input()
+        self.my_input.update()
 
 
 ##########################################

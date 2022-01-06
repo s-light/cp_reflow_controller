@@ -64,9 +64,12 @@ class ReflowController(object):
 
     def __init__(self):
         super(ReflowController, self).__init__()
-        print("ReflowController")
-        print("  https://github.com/s-light/cp_reflow_controller")
-        print(42 * "*")
+        # self.print is later replaced by the ui module.
+        self.print = lambda *args: print(*args)
+
+        self.print("ReflowController")
+        self.print("  https://github.com/s-light/cp_reflow_controller")
+        self.print(42 * "*")
         self.load_profiles()
         self.load_config()
         # select stored profile
@@ -81,12 +84,12 @@ class ReflowController(object):
         self.profiles = {}
         # self.profiles_infos = myprofiles.load_all_submodules()
         # for profile_name, profile in self.profiles_infos.items():
-        #     print(profile_name)
+        #     self.print(profile_name)
         (
             self.profiles_infos,
             self.profiles,
         ) = myprofiles.load_all_submodules_and_instantiate_all_classes()
-        # print(
+        # self.print(
         #     "load_profiles:\n"
         #     "  profiles: {}\n"
         #     # "  infos: {}"
@@ -95,10 +98,10 @@ class ReflowController(object):
         #         # self.profiles_infos,
         #     )
         # )
-        print("load_profiles:")
+        self.print("load_profiles:")
         for p_name, profile in self.profiles.items():
-            print("  '{}': {}".format(p_name, profile))
-        print()
+            self.print("  '{}': {}".format(p_name, profile))
+        self.print()
         self.profiles_names = list(self.profiles.keys())
         self.profiles_names.sort()
         # ProfileCalibration is an internal profile not available as user selection.
@@ -127,7 +130,7 @@ class ReflowController(object):
     #     return self.profiles[name]
 
     def profile_get_next_name(self):
-        # print("self.profile_selected.__name__", self.profile_selected.__name__)
+        # self.print("self.profile_selected.__name__", self.profile_selected.__name__)
         try:
             index_current = self.profiles_names.index(self.profile_selected.__name__)
         except ValueError as e:
@@ -153,11 +156,11 @@ class ReflowController(object):
                 self.config = json.load(configfile)
                 configfile.close()
         except OSError as e:
-            # print(dir(e))
-            # print(e.errno)
+            # self.print(dir(e))
+            # self.print(e.errno)
             if e.errno == 2:
-                print(e)
-                # print(e.strerror)
+                self.print(e)
+                # self.print(e.strerror)
             else:
                 raise e
         # extend with default config - thisway it is safe to use ;-)
@@ -219,7 +222,7 @@ class ReflowController(object):
             # debug_out_print=True,
         )
         self.heater_target = False
-        # print("heater_setup done:", self.heater)
+        # self.print("heater_setup done:", self.heater)
 
     @property
     def heater_pwm(self):
@@ -257,14 +260,14 @@ class ReflowController(object):
 
     @heater_target.setter
     def heater_target(self, value):
-        # print("heater_target.setter: value", value, end="")
+        # self.print("heater_target.setter: value", value, end="")
         if value is False or value is None:
             if self.temperature_reference:
                 value = self.temperature_reference
             else:
                 # fallback to 18°C
                 value = 18
-        # print(" →", value)
+        # self.print(" →", value)
         self.pid.set_point = value
         return value
 
@@ -290,7 +293,7 @@ class ReflowController(object):
         self.state_current = self.states[state]
         self.state_current.active = True
         state_name_new = self.state_current.name
-        print("rc state: '{}' -> '{}'".format(state_name_old, state_name_new))
+        self.print("rc state: '{}' -> '{}'".format(state_name_old, state_name_new))
         self.state_current.update()
 
     def setup_states(self):
@@ -338,7 +341,7 @@ class ReflowController(object):
         # handle heater_target with currently selected profile..
         self.set_heater_target_to_profile_target()
         profile_running = self.profile_selected.step_next_check_and_do()
-        # print("profile_running", profile_running)
+        # self.print("profile_running", profile_running)
         if profile_running is False:
             # we reached the end of the reflow process
             self.switch_to_state("standby")
@@ -383,7 +386,7 @@ class ReflowController(object):
     def temperature_update_on_change(self, temperature_read):
         # temp_average = self.temperature_filter_update(temperature_read)
         # temp_diff, temp_average = self.temperature_filter_update(temperature_read)
-        # print(
+        # self.print(
         #     "temp_diff:    {:.02f}°C \n"
         #     "temp_average: {:.02f}°C \n"
         #     "temperature:  {}°C \n"
@@ -400,19 +403,22 @@ class ReflowController(object):
             self.temperature = temperature_read
             temp_diff = abs(self.temperature_change_last - self.temperature)
             if temp_diff >= 0.3:
-                # print(
+                # self.print(
                 #     "temp_diff:    {:.02f}°C \n"
                 #     "temperature_change_last:  {:.02f}°C \n"
-                #     "temp_average: {:.02f}°C \n"
+                #     # "temp_average: {:.02f}°C \n"
                 #     "temperature:  {:.02f}°C \n"
                 #     "".format(
                 #         temp_diff,
                 #         self.temperature_change_last,
-                #         temp_average,
+                #         # temp_average,
                 #         self.temperature,
                 #     ),
                 #     # end="",
                 # )
+                # self.print("temp_diff:    {:.02f}°C \n" "".format(temp_diff))
+                # if hasattr(self, "ui"):
+                #     self.ui.print(content=True)
                 self.temperature_change_last = self.temperature
                 self.temperature_changed = temp_diff
             else:
@@ -461,16 +467,16 @@ class ReflowController(object):
         #     self.check_input()
 
     def run(self):
-        print(42 * "*")
-        print("run")
+        self.print(42 * "*")
+        self.print("run")
         # if supervisor.runtime.serial_connected:
-        self.ui.print_help()
+        self.ui.userinput_print_help()
         running = True
         while running:
             try:
                 self.main_loop()
             except KeyboardInterrupt as e:
-                print("KeyboardInterrupt - Stop Program.", e)
+                self.print("KeyboardInterrupt - Stop Program.", e)
                 running = False
 
 

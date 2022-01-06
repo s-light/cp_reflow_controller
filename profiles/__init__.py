@@ -16,7 +16,7 @@ profile base class.
 # import sys
 import time
 
-import ASCII_escape_code as terminal
+import ansi_escape_code as terminal
 
 import load_modules
 
@@ -117,8 +117,8 @@ class Profile(object):
                 step["runtime_end"] = sum
                 step["temp_start"] = self.steps[index - 1]["temp_target"]
 
-    def print_profile(self):
-        print(
+    def format_profile(self, long=False):
+        return (
             "Profile: {name}\n"
             " title   {title}\n"
             " alloy   {alloy}\n"
@@ -134,7 +134,7 @@ class Profile(object):
                 melting_point=self.melting_point,
                 duration=self.duration,
                 max_temperatur=self.max_temperatur,
-                steps=self.formated_steps(pre=" "),
+                steps=self.formated_steps(pre=" ", long=long),
             )
         )
 
