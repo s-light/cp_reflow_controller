@@ -16,22 +16,22 @@ class TestDev_Profile_Slow(profiles.Profile):
         self.reference = "https://blog.s-light.eu/hot-plate-smd-soldering/"
         self.steps = [
             {
-                "stage": "preheat",
+                "name": "preheat",
                 "duration": 20,
                 "temp_target": 30,
             },
             {
-                "stage": "soak",
+                "name": "soak",
                 "duration": 20,
                 "temp_target": 40,
             },
             {
-                "stage": "reflow",
+                "name": "reflow",
                 "duration": 30,
                 "temp_target": 60,
             },
             {
-                "stage": "cool",
+                "name": "cool",
                 "duration": 180,
                 "temp_target": 0,
             },

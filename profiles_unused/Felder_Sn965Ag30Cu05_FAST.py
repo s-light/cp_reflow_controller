@@ -16,22 +16,22 @@ class Felder_ISO_Cream_Clear_FAST(profiles.Profile):
         self.reference = "https://www.felder.de/files/felder/pdf/DE_23-Clear.pdf"
         self.steps = [
             {
-                "stage": "preheat",
+                "name": "preheat",
                 "duration": 120,
                 "temp_target": 150,
             },
             {
-                "stage": "soak",
+                "name": "soak",
                 "duration": 50,
                 "temp_target": 200,
             },
             {
-                "stage": "reflow",
+                "name": "reflow",
                 "duration": 30,
                 "temp_target": 248,
             },
             {
-                "stage": "cool",
+                "name": "cool",
                 "duration": 120,
                 "temp_target": 0,
             },

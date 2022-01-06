@@ -340,7 +340,9 @@ class ReflowController(object):
     def reflow_update(self):
         # handle heater_target with currently selected profile..
         self.set_heater_target_to_profile_target()
-        profile_running = self.profile_selected.step_next_check_and_do()
+        profile_running = self.profile_selected.step_next_check_and_do(
+            myprint=self.print
+        )
         # self.print("profile_running", profile_running)
         if profile_running is False:
             # we reached the end of the reflow process

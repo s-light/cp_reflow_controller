@@ -143,7 +143,7 @@ class ReflowControllerUI(object):
             width=128,  # display width
             height=105,  # display height
             xrange=(0, helper.round_up(self.profile_selected.duration)),
-            yrange=(0, helper.round_up(self.profile_selected.max_temperatur)),
+            yrange=(0, helper.round_up(self.profile_selected.max_temperature)),
         )
 
         self.main_group = displayio.Group()
@@ -187,7 +187,7 @@ class ReflowControllerUI(object):
         )
         self.my_plane.yrange = (
             self.my_plane.yrange[0],
-            helper.round_up(self.profile_selected.max_temperatur),
+            helper.round_up(self.profile_selected.max_temperature),
         )
         # if self.my_plane.xrange[1] < self.my_plane._width:
         #     pass
@@ -265,18 +265,18 @@ class ReflowControllerUI(object):
         return text
 
     def create_plot_data_profile(self):
-        stage = 0
+        step_index = 0
         if self.profile_selected:
-            stage = self.profile_selected.step_current_index
-        if not stage:
-            stage = 0
+            step_index = self.profile_selected.step_current_index
+        if not step_index:
+            step_index = 0
         text = (
             # "{runtime: >7.2f}, "
-            "{stage: >2d}, "
+            "{step_index: >2d}, "
             "{error: > 7.2f}, "
         ).format(
             # runtime=self.profile_selected.runtime,
-            stage=stage * 10,
+            step_index=step_index * 10,
             error=self.reflowcontroller.pid.error,
         )
         return text
@@ -480,7 +480,7 @@ class ReflowControllerUI(object):
         # set special temperature range:
         self.my_plane.yrange = (
             self.my_plane.yrange[0],
-            helper.round_up(self.profile_selected.max_temperatur) + 20,
+            helper.round_up(self.profile_selected.max_temperature) + 20,
         )
         self.print("\n" * self.config["display"]["serial"]["lines_spacing_above"])
         self.my_plane.clear_plot_lines()
@@ -594,7 +594,7 @@ class ReflowControllerUI(object):
         lines_spacing_above = self.config["display"]["serial"]["lines_spacing_above"]
         text = ""
         lines = [
-            "stage:     '{stage}'\n",
+            "step_name:     '{step_name}'\n",
             "runtime:{runtime: >7.2f}s\n",
             "target:  {orange}{target: >6.2f}{reset}°C\n",
             "current: {current: >6.2f}°C\n",
@@ -609,7 +609,7 @@ class ReflowControllerUI(object):
             text = "{move_to_previous_lines}" + text
         self.print(
             text.format(
-                stage=self.profile_selected.step_current["stage"],
+                step_name=self.profile_selected.step_current["name"],
                 runtime=self.profile_selected.runtime,
                 target=self.reflowcontroller.heater_target,
                 current=self.reflowcontroller.temperature,
@@ -626,7 +626,7 @@ class ReflowControllerUI(object):
     def update_ui_serial_singleline(self, replace=False, end="\n"):
         # update serial output
         text = (
-            "{stage: <10} "
+            "{step_name: <10} "
             "{runtime: >7.2f}s "
             "t: {orange}{target: > 7.2f}{reset}°C "
             "c: {current: > 7.2f}°C "
@@ -639,7 +639,7 @@ class ReflowControllerUI(object):
         #     text = "{move_to_previous_lines}" + text
         self.print(
             text.format(
-                stage=self.profile_selected.step_current["stage"],
+                step_name=self.profile_selected.step_current["name"],
                 runtime=self.profile_selected.runtime,
                 target=self.reflowcontroller.heater_target,
                 current=self.reflowcontroller.temperature,
@@ -776,7 +776,7 @@ class ReflowControllerUI(object):
         "temp: {current: >6.02f}°C   "
         "target: {target: >6.02f}°C   "
         "error: {error: >6.02f}°C   "
-        "step: {step: <11s}   "
+        "step: {step_name: <11s}   "
         "runtime: {step_runtime: >7.2f}s"
     )
 
@@ -793,7 +793,7 @@ class ReflowControllerUI(object):
         temp: 000.00°C
         target: 000.00°C
         error: 000.00°C
-        step: STAGENAME_
+        step: step_nameNAME_
         runtime: 0000.00s
 
         """
@@ -815,11 +815,11 @@ class ReflowControllerUI(object):
         if hasattr(self.reflowcontroller.pid, "error"):
             temperature_error = self.reflowcontroller.pid.error
 
-        step = "***"
+        step_name = "***"
         step_runtime = -1
         if self.profile_selected:
             if self.profile_selected.step_current:
-                step = self.profile_selected.step_current["step"]
+                step_name = self.profile_selected.step_current["name"]
                 step_runtime = self.profile_selected.runtime
 
         statusline = self.statusline_template.format(
@@ -828,7 +828,7 @@ class ReflowControllerUI(object):
             current=temperature_current,
             target=temperature_target,
             error=temperature_error,
-            step=step,
+            step_name=step_name,
             step_runtime=step_runtime,
             reset=terminal.ANSIColors.reset,
         )

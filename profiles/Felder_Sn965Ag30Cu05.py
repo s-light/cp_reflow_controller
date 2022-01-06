@@ -16,12 +16,12 @@ class Felder_ISO_Cream_Clear(profiles.Profile):
         self.reference = "https://www.felder.de/files/felder/pdf/DE_23-Clear.pdf"
         self.steps = [
             {
-                "stage": "preheat",
+                "name": "preheat",
                 "duration": 210,
                 "temp_target": 150,
             },
             {
-                "stage": "soak",
+                "name": "soak",
                 "duration": 90,
                 "temp_target": 200,
             },
@@ -29,17 +29,17 @@ class Felder_ISO_Cream_Clear(profiles.Profile):
             # about 40s
             # and 60-90s in liquid state -> above  ~120°C
             {
-                "stage": "reflow",
+                "name": "reflow",
                 "duration": 30,
                 "temp_target": 220,
             },
             {
-                "stage": "reflow_hold",
+                "name": "reflow_hold",
                 "duration": 60,
                 "temp_target": 245,
             },
             {
-                "stage": "cool",
+                "name": "cool",
                 # datasheet says 70s
                 # we currently have no active cooling
                 # so we have to wait...
@@ -47,7 +47,7 @@ class Felder_ISO_Cream_Clear(profiles.Profile):
                 "temp_target": 45,
             },
             # {
-            #     "stage": "cool_save",
+            #     "name": "cool_save",
             #     "duration": 10,
             #     "temp_target": 0,
             # },

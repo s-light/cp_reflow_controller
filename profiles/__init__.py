@@ -54,22 +54,22 @@ class Profile(object):
         # this profile steps contain the soldering profile
         self.steps = [
             {
-                "stage": "preheat",
+                "name": "preheat",
                 "duration": 210,
                 "temp_target": 150,
             },
             {
-                "stage": "soak",
+                "name": "soak",
                 "duration": 90,
                 "temp_target": 200,
             },
             {
-                "stage": "reflow",
+                "name": "reflow",
                 "duration": 40,
                 "temp_target": 245,
             },
             {
-                "stage": "cool",
+                "name": "cool",
                 "duration": 70,
                 "temp_target": 0,
             },
@@ -94,7 +94,7 @@ class Profile(object):
         self.steps.insert(
             0,  # index
             {
-                "stage": "start",
+                "name": "start",
                 "duration": 0,
                 "temp_target": 0,
                 "temp_start": 0,
@@ -104,7 +104,7 @@ class Profile(object):
         )
         self.steps.append(
             {
-                "stage": "end",
+                "name": "end",
                 "duration": 0,
                 "temp_target": 0,
             },
@@ -124,7 +124,7 @@ class Profile(object):
             " alloy   {alloy}\n"
             " melting_point  {melting_point: >3}°C\n"
             " duration       {duration: >3}s\n"
-            " max_temperatur {max_temperatur: >3}°C\n"
+            " max_temperature {max_temperature: >3}°C\n"
             " steps:\n"
             "{steps}"
             "".format(
@@ -133,7 +133,7 @@ class Profile(object):
                 alloy=self.alloy,
                 melting_point=self.melting_point,
                 duration=self.duration,
-                max_temperatur=self.max_temperatur,
+                max_temperature=self.max_temperature,
                 steps=self.formated_steps(pre=" ", long=long),
             )
         )
@@ -143,8 +143,8 @@ class Profile(object):
         for index, step in enumerate(self.steps):
             if long:
                 result += (
-                    "{pre}step[{index}] '{stage}'\n"
-                    # " stage '{}'\n"
+                    "{pre}step[{index}] '{step_name}'\n"
+                    # " step_name '{}'\n"
                     "{pre} temp_target   {temp_target: >3}°C\n"
                     "{pre} temp_start      {temp_start: >3}°C\n"
                     "{pre} duration      {duration: >3}s\n"
@@ -153,7 +153,7 @@ class Profile(object):
                     "".format(
                         pre=pre,
                         index=index,
-                        stage=step["stage"],
+                        step_name=step["name"],
                         duration=step["duration"],
                         temp_target=step["temp_target"],
                         temp_start=step["temp_start"],
@@ -163,14 +163,14 @@ class Profile(object):
                 )
             else:
                 result += (
-                    "{pre}step[{index}] '{stage}'\n"
-                    # " stage '{}'\n"
+                    "{pre}step[{index}] '{step_name}'\n"
+                    # " step_name '{}'\n"
                     "{pre} temp_target   {temp_target: >3}°C\n"
                     "{pre} duration      {duration: >3}s\n"
                     "".format(
                         pre=pre,
                         index=index,
-                        stage=step["stage"],
+                        step_name=step["name"],
                         duration=step["duration"],
                         temp_target=step["temp_target"],
                     )
@@ -196,7 +196,6 @@ class Profile(object):
         else:
             self._step_current = self.steps[self._step_current_index]
         return self._step_current
-        return self._step_current
 
     def step_start(self):
         self.step_current = 0
@@ -217,12 +216,12 @@ class Profile(object):
         return duration
 
     @property
-    def max_temperatur(self):
-        max_temperatur = 0
+    def max_temperature(self):
+        max_temperature = 0
         for step in self.steps:
-            if max_temperatur < step["temp_target"]:
-                max_temperatur = step["temp_target"]
-        return max_temperatur
+            if max_temperature < step["temp_target"]:
+                max_temperature = step["temp_target"]
+        return max_temperature
 
     # helper
     def find_current_step(self, duration):
@@ -240,16 +239,16 @@ class Profile(object):
         self.runtime_start = time.monotonic()
         self.temperature_min = temperature_min
 
-    def step_next_check_and_do(self, lines_move=17):
+    def step_next_check_and_do(self, myprint=print):
         running = True
         if self.step_current and self.runtime > self.step_current["runtime_end"]:
             if self.step_next() is not None:
-                print(
+                myprint(
                     # "{prev_line}{erase_line}"
-                    "reflowcycle: switched to {stage}\n\n"
+                    "reflowcycle: switched to {step_name}\n\n"
                     # "{next_line}"
                     "".format(
-                        stage=self.step_current["stage"],
+                        step_name=self.step_current["name"],
                         # prev_line=terminal.control.cursor.previous_line(
                         #     lines_move - (self.step_current_index + 1)
                         # ),
@@ -258,14 +257,14 @@ class Profile(object):
                     ),
                     # end="",
                 )
-                self.step_current_index
+                # self.step_current_index
                 # print(
                 #     # "{prev_line}{erase_line}"
-                #     "reflowcycle: switched to {stage}\n\n"
+                #     "reflowcycle: switched to {step_name}\n\n"
                 #     "{next_line}"
                 #     "{space_after}"
                 #     "".format(
-                #         stage=self.step_current["stage"],
+                #         step_name=self.step_current["name"],
                 #         prev_line=terminal.control.cursor.previous_line(5),
                 #         erase_line=terminal.control.erase_line(0),
                 #         next_line=terminal.control.cursor.next_line(9),
