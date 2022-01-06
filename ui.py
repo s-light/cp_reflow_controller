@@ -340,7 +340,7 @@ class ReflowControllerUI(object):
         self.state_current = self.states[state]
         self.state_current.active = True
         state_name_new = self.state_current.name
-        self.print("UI state: '{}' -> '{}'".format(state_name_old, state_name_new))
+        # self.print("UI state: '{}' -> '{}'".format(state_name_old, state_name_new))
         self.state_current.update()
 
     def setup_states(self):
@@ -779,7 +779,9 @@ class ReflowControllerUI(object):
         "target: {target: >6.02f}°C   "
         "error: {error: >6.02f}°C   "
         "step: {step_name: <11s}   "
-        "runtime: {step_runtime: >7.2f}s"
+        "runtime: {step_runtime: >7.2f}s   "
+        "ui: {ui_state: <14}   "
+        "ctr: {ctr_state: <14}"
     )
 
     def statusline_fn(self):
@@ -832,6 +834,8 @@ class ReflowControllerUI(object):
             error=temperature_error,
             step_name=step_name,
             step_runtime=step_runtime,
+            ui_state=self.state_current.name,
+            ctr_state=self.reflowcontroller.state_current.name,
             reset=terminal.ANSIColors.reset,
         )
 

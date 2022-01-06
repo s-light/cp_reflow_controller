@@ -293,7 +293,7 @@ class ReflowController(object):
         self.state_current = self.states[state]
         self.state_current.active = True
         state_name_new = self.state_current.name
-        self.print("rc state: '{}' -> '{}'".format(state_name_old, state_name_new))
+        # self.print("rc state: '{}' -> '{}'".format(state_name_old, state_name_new))
         self.state_current.update()
 
     def setup_states(self):

@@ -117,25 +117,26 @@ class Profile(object):
                 step["runtime_end"] = sum
                 step["temp_start"] = self.steps[index - 1]["temp_target"]
 
+    profile_template = (
+        "Profile: {name}\n"
+        " title   {title}\n"
+        " alloy   {alloy}\n"
+        " melting_point  {melting_point: >3}°C\n"
+        " duration       {duration: >3}s\n"
+        " max_temperature {max_temperature: >3}°C\n"
+        " steps:\n"
+        "{steps}"
+    )
+
     def format_profile(self, long=False):
-        return (
-            "Profile: {name}\n"
-            " title   {title}\n"
-            " alloy   {alloy}\n"
-            " melting_point  {melting_point: >3}°C\n"
-            " duration       {duration: >3}s\n"
-            " max_temperature {max_temperature: >3}°C\n"
-            " steps:\n"
-            "{steps}"
-            "".format(
-                name=self.__name__,
-                title=self.title,
-                alloy=self.alloy,
-                melting_point=self.melting_point,
-                duration=self.duration,
-                max_temperature=self.max_temperature,
-                steps=self.formated_steps(pre=" ", long=long),
-            )
+        return self.profile_template.format(
+            name=self.__name__,
+            title=self.title,
+            alloy=self.alloy,
+            melting_point=self.melting_point,
+            duration=self.duration,
+            max_temperature=self.max_temperature,
+            steps=self.formated_steps(pre=" ", long=long),
         )
 
     def formated_steps(self, long=False, pre=""):
