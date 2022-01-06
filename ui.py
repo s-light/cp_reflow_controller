@@ -499,7 +499,7 @@ class ReflowControllerUI(object):
         if duration > self.display_update_intervall:
             self.last_display_update = self.profile_selected.runtime
             self.reflow_update_ui_display()
-            self.update_ui_serial_singleline(end="")
+            # self.update_ui_serial_singleline(end="")
             self.pixels_set_proportional(
                 self.profile_selected.step_current_index,
                 len(self.profile_selected.steps) - 1,
@@ -589,72 +589,74 @@ class ReflowControllerUI(object):
         temperature = min(self.my_plane.yrange[1], self.reflowcontroller.temperature)
         self.my_plane.add_plot_line(runtime, temperature)
 
-    def update_ui_serial_multiline(self, replace=True):
-        # update serial output
-        lines_spacing_above = self.config["display"]["serial"]["lines_spacing_above"]
-        text = ""
-        lines = [
-            "step_name:     '{step_name}'\n",
-            "runtime:{runtime: >7.2f}s\n",
-            "target:  {orange}{target: >6.2f}{reset}°C\n",
-            "current: {current: >6.2f}°C\n",
-        ]
-        if replace:
-            for line in lines:
-                text += "{erase_line}" + line
-        else:
-            text = lines.join("")
-        text = ("\n" * lines_spacing_above) + text
-        if replace:
-            text = "{move_to_previous_lines}" + text
-        self.print(
-            text.format(
-                step_name=self.profile_selected.step_current["name"],
-                runtime=self.profile_selected.runtime,
-                target=self.reflowcontroller.heater_target,
-                current=self.reflowcontroller.temperature,
-                orange=terminal.colors.fg.orange,
-                reset=terminal.colors.reset,
-                move_to_previous_lines=terminal.control.cursor.previous_line(
-                    len(lines) + lines_spacing_above
-                ),
-                erase_line=terminal.control.erase_line(0),
-            ),
-            end="",
-        )
-
-    def update_ui_serial_singleline(self, replace=False, end="\n"):
-        # update serial output
-        text = (
-            "{step_name: <10} "
-            "{runtime: >7.2f}s "
-            "t: {orange}{target: > 7.2f}{reset}°C "
-            "c: {current: > 7.2f}°C "
-            "d: {error: > 7.2f}°C "
-        )
-        # if replace:
-        #     text += "{erase_line}" + text
-        # text = ("\n" * lines_spacing_above) + text
-        # if replace:
-        #     text = "{move_to_previous_lines}" + text
-        self.print(
-            text.format(
-                step_name=self.profile_selected.step_current["name"],
-                runtime=self.profile_selected.runtime,
-                target=self.reflowcontroller.heater_target,
-                current=self.reflowcontroller.temperature,
-                error=self.reflowcontroller.pid.error,
-                orange=terminal.colors.fg.orange,
-                reset=terminal.colors.reset,
-                move_to_previous_lines=terminal.control.cursor.previous_line(1),
-                erase_line=terminal.control.erase_line(0),
-            ),
-            # end=end,
-        )
-
-    def reflow_update_ui_serial(self, replace=True):
-        # self.update_ui_serial_multiline(replace)
-        self.update_ui_serial_singleline()
+    def old_unused_code_to_store_somewhere_for_maybe_later_use(self):
+        # def update_ui_serial_multiline(self, replace=True):
+        #     # update serial output
+        #     lines_spacing_above = self.config["display"]["serial"]["lines_spacing_above"]
+        #     text = ""
+        #     lines = [
+        #         "step_name:     '{step_name}'\n",
+        #         "runtime:{runtime: >7.2f}s\n",
+        #         "target:  {orange}{target: >6.2f}{reset}°C\n",
+        #         "current: {current: >6.2f}°C\n",
+        #     ]
+        #     if replace:
+        #         for line in lines:
+        #             text += "{erase_line}" + line
+        #     else:
+        #         text = lines.join("")
+        #     text = ("\n" * lines_spacing_above) + text
+        #     if replace:
+        #         text = "{move_to_previous_lines}" + text
+        #     self.print(
+        #         text.format(
+        #             step_name=self.profile_selected.step_current["name"],
+        #             runtime=self.profile_selected.runtime,
+        #             target=self.reflowcontroller.heater_target,
+        #             current=self.reflowcontroller.temperature,
+        #             orange=terminal.colors.fg.orange,
+        #             reset=terminal.colors.reset,
+        #             move_to_previous_lines=terminal.control.cursor.previous_line(
+        #                 len(lines) + lines_spacing_above
+        #             ),
+        #             erase_line=terminal.control.erase_line(0),
+        #         ),
+        #         end="",
+        #     )
+        #
+        # def update_ui_serial_singleline(self, replace=False, end="\n"):
+        #     # update serial output
+        #     text = (
+        #         "{step_name: <10} "
+        #         "{runtime: >7.2f}s "
+        #         "t: {orange}{target: > 7.2f}{reset}°C "
+        #         "c: {current: > 7.2f}°C "
+        #         "d: {error: > 7.2f}°C "
+        #     )
+        #     # if replace:
+        #     #     text += "{erase_line}" + text
+        #     # text = ("\n" * lines_spacing_above) + text
+        #     # if replace:
+        #     #     text = "{move_to_previous_lines}" + text
+        #     self.print(
+        #         text.format(
+        #             step_name=self.profile_selected.step_current["name"],
+        #             runtime=self.profile_selected.runtime,
+        #             target=self.reflowcontroller.heater_target,
+        #             current=self.reflowcontroller.temperature,
+        #             error=self.reflowcontroller.pid.error,
+        #             orange=terminal.colors.fg.orange,
+        #             reset=terminal.colors.reset,
+        #             move_to_previous_lines=terminal.control.cursor.previous_line(1),
+        #             erase_line=terminal.control.erase_line(0),
+        #         ),
+        #         # end=end,
+        #     )
+        #
+        # def reflow_update_ui_serial(self, replace=True):
+        #     # self.update_ui_serial_multiline(replace)
+        #     self.update_ui_serial_singleline()
+        pass
 
     def states_reflow_running_update(self):
         if self.reflowcontroller.temperature_changed:
@@ -668,7 +670,7 @@ class ReflowControllerUI(object):
         if duration > self.display_update_intervall:
             self.last_display_update = self.profile_selected.runtime
             self.reflow_update_ui_display()
-            self.reflow_update_ui_serial()
+            # self.reflow_update_ui_serial()
             # self.reflow_update_ui_serial(replace=False)
             self.pixels_set_proportional(
                 self.profile_selected.step_current_index,
