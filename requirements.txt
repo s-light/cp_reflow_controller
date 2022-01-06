@@ -1,0 +1,13 @@
+# SPDX-FileCopyrightText: Copyright (c) 2021 Stefan Krüger for s-light
+#
+# SPDX-License-Identifier: MIT
+
+Adafruit-Blinka
+
+Adafruit-CircuitPython-pybadger
+Adafruit-CircuitPython-debouncer
+Adafruit-CircuitPython-max31855
+Adafruit-CircuitPython-displayio-layout
+
+CircuitPython-ansi-escape-code
+CircuitPython-nonblocking-serialinput

@@ -10,8 +10,6 @@
 all things UI:
 serial terminal & display terminal & drawing & button handling
 """
-
-
 # import os
 # import sys
 
@@ -23,10 +21,12 @@ from adafruit_pybadger import pybadger
 import displayio
 from adafruit_displayio_layout.widgets.cartesian import Cartesian
 
+import ansi_escape_code as terminal
+import nonblocking_serialinput as nb_serial
+
 import helper
 
 from configdict import extend_deep
-import ASCII_escape_code as terminal
 from state import State
 
 from buttons import PyBadgeButtons
@@ -41,6 +41,14 @@ from buttons import PyBadgeButtons
 
 class ReflowControllerUI(object):
     """ReflowControllerDisplay."""
+
+    logo_slight = """
+        ^ ^
+       (0,0)
+       ( _ )
+        " "
+    s-light.eu
+    """
 
     config_defaults = {
         "hw": {
@@ -87,10 +95,20 @@ class ReflowControllerUI(object):
         super(ReflowControllerUI, self).__init__()
         # print("ReflowControllerDisplay")
         self.reflowcontroller = reflowcontroller
+        self.setup_serial()
         self.setup()
         self.setup_states()
         self.setup_colors()
         self.usb_cdc_data_setup()
+
+    def setup_serial(self):
+        self.my_input = nb_serial.NonBlockingSerialInput(
+            input_handling_fn=self.userinput_event_handling,
+            print_help_fn=self.userinput_print_help,
+            echo=True,
+            statusline=True,
+            statusline_intervall=1.0,
+        )
 
     def setup(self):
         self.config = self.reflowcontroller.config
@@ -743,42 +761,37 @@ class ReflowControllerUI(object):
                 )
         return value
 
-    def check_input(self):
+    def userinput_event_handling(self, input_string):
         """Check Input."""
-        input_string = input()
-        # sys.stdin.read(1)
-        if "calibrate" in input_string:
+        if input_string.startswith("calibrate"):
             # self.calibrate()
             self.switch_to_state("calibration_prepare")
-        if "start" in input_string:
+        elif input_string.startswith("start"):
             self.switch_to_state("reflow_prepare")
-        if "stop" in input_string:
+        elif input_string.startswith("stop"):
             self.menu_reflowcycle_stop()
-        if "pn" in input_string:
+        elif input_string.startswith("pn"):
             self.reflowcontroller.profile_select_next()
-        if "pid p" in input_string:
-            value = self.parse_value(input_string, "pid p")
+        elif input_string.startswith("pid p"):
+            value = nb_serial.parse_value(input_string, "pid p")
             if value:
                 self.reflowcontroller.pid.P_gain = value
-        if "pid i" in input_string:
-            value = self.parse_value(input_string, "pid i")
+        elif input_string.startswith("pid i"):
+            value = nb_serial.parse_value(input_string, "pid i")
             if helper.is_number(value):
                 self.reflowcontroller.pid.I_gain = value
-        if "pid d" in input_string:
-            value = self.parse_value(input_string, "pid d")
+        elif input_string.startswith("pid d"):
+            value = nb_serial.parse_value(input_string, "pid d")
             if helper.is_number(value):
                 self.reflowcontroller.pid.D_gain = value
-        # if "pid s" in input_string:
-        #     value = self.parse_value(input_string, "pid s")
+        # elif input_string.startswith(f "pid s"):
+        #     value = nb_serial.parse_value(input_string, "pid s")
         #     if helper.is_number(value):
         #         self.reflowcontroller.pid.set_point = value
-        if "h" in input_string:
-            value = self.parse_value(input_string, "h")
+        elif input_string.startswith("h"):
+            value = nb_serial.parse_value(input_string, "h")
             if helper.is_number(value):
                 self.reflowcontroller.heater_target = value
-        # prepare new input
-        self.print_help()
-        print(">> ", end="")
 
     @staticmethod
     def input_parse_pixel_set(input_string):
