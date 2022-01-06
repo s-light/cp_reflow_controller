@@ -117,19 +117,45 @@ class Profile(object):
                 step["runtime_end"] = sum
                 step["temp_start"] = self.steps[index - 1]["temp_target"]
 
-    profile_template = (
-        "Profile: {name}\n"
-        " title   {title}\n"
-        " alloy   {alloy}\n"
-        " melting_point  {melting_point: >3}°C\n"
-        " duration       {duration: >3}s\n"
-        " max_temperature {max_temperature: >3}°C\n"
-        " steps:\n"
-        "{steps}"
-    )
+    def print_profile(self, myprint=print):
+        # hopefully this workaround helps so that not as much temporary space is needed
+        # for the long string output
+        profile_template = (
+            "Profile: {name}\n"
+            " title   {title}\n"
+            " alloy   {alloy}\n"
+            " melting_point  {melting_point: >3}°C\n"
+            " duration       {duration: >3}s\n"
+            " max_temperature {max_temperature: >3}°C\n"
+            " steps:"
+        )
+        myprint(
+            profile_template.format(
+                name=self.__name__,
+                title=self.title,
+                alloy=self.alloy,
+                melting_point=self.melting_point,
+                duration=self.duration,
+                max_temperature=self.max_temperature,
+            )
+        )
+
+        for index, step in enumerate(self.steps):
+            myprint(self.formated_step(index, step, long=False, pre=" "))
+        # now the result should be the same as the output from format_profile.
 
     def format_profile(self, long=False):
-        return self.profile_template.format(
+        profile_template = (
+            "Profile: {name}\n"
+            " title   {title}\n"
+            " alloy   {alloy}\n"
+            " melting_point  {melting_point: >3}°C\n"
+            " duration       {duration: >3}s\n"
+            " max_temperature {max_temperature: >3}°C\n"
+            " steps:\n"
+            "{steps}"
+        )
+        return profile_template.format(
             name=self.__name__,
             title=self.title,
             alloy=self.alloy,
@@ -139,43 +165,49 @@ class Profile(object):
             steps=self.formated_steps(pre=" ", long=long),
         )
 
+    @staticmethod
+    def formated_step(index, step, long=False, pre=""):
+        result = ""
+        if long:
+            result += (
+                "{pre}step[{index}] '{step_name}'\n"
+                # " step_name '{}'\n"
+                "{pre} temp_target   {temp_target: >3}°C\n"
+                "{pre} temp_start      {temp_start: >3}°C\n"
+                "{pre} duration      {duration: >3}s\n"
+                "{pre} runtime_start {runtime_start: >3}s\n"
+                "{pre} runtime_end   {runtime_end: >3}s\n"
+                "".format(
+                    pre=pre,
+                    index=index,
+                    step_name=step["name"],
+                    duration=step["duration"],
+                    temp_target=step["temp_target"],
+                    temp_start=step["temp_start"],
+                    runtime_start=step["runtime_start"],
+                    runtime_end=step["runtime_end"],
+                )
+            )
+        else:
+            result += (
+                "{pre}step[{index}] '{step_name}'\n"
+                # " step_name '{}'\n"
+                "{pre} temp_target   {temp_target: >3}°C\n"
+                "{pre} duration      {duration: >3}s\n"
+                "".format(
+                    pre=pre,
+                    index=index,
+                    step_name=step["name"],
+                    duration=step["duration"],
+                    temp_target=step["temp_target"],
+                )
+            )
+        return result
+
     def formated_steps(self, long=False, pre=""):
         result = ""
         for index, step in enumerate(self.steps):
-            if long:
-                result += (
-                    "{pre}step[{index}] '{step_name}'\n"
-                    # " step_name '{}'\n"
-                    "{pre} temp_target   {temp_target: >3}°C\n"
-                    "{pre} temp_start      {temp_start: >3}°C\n"
-                    "{pre} duration      {duration: >3}s\n"
-                    "{pre} runtime_start {runtime_start: >3}s\n"
-                    "{pre} runtime_end   {runtime_end: >3}s\n"
-                    "".format(
-                        pre=pre,
-                        index=index,
-                        step_name=step["name"],
-                        duration=step["duration"],
-                        temp_target=step["temp_target"],
-                        temp_start=step["temp_start"],
-                        runtime_start=step["runtime_start"],
-                        runtime_end=step["runtime_end"],
-                    )
-                )
-            else:
-                result += (
-                    "{pre}step[{index}] '{step_name}'\n"
-                    # " step_name '{}'\n"
-                    "{pre} temp_target   {temp_target: >3}°C\n"
-                    "{pre} duration      {duration: >3}s\n"
-                    "".format(
-                        pre=pre,
-                        index=index,
-                        step_name=step["name"],
-                        duration=step["duration"],
-                        temp_target=step["temp_target"],
-                    )
-                )
+            result += self.formated_step(index, step, long=long, pre=pre)
         return result
 
     def print_steps(self, long=False, pre=""):

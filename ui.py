@@ -71,9 +71,9 @@ class ReflowControllerUI(object):
                 "blue_dark": 0x000010,
                 # "blue_dark": 0x000010,
             },
-            "serial": {
-                "lines_spacing_above": 15,
-            },
+            # "serial": {
+            #     "lines_spacing_above": 15,
+            # },
         },
         "serial_data": {
             "intervall": 0.1,
@@ -239,8 +239,8 @@ class ReflowControllerUI(object):
             "".format(
                 message=message,
                 error=error,
-                color=terminal.colors.fg.orange,
-                reset=terminal.colors.reset,
+                color=terminal.ANSIColors.fg.orange,
+                reset=terminal.ANSIColors.reset,
             )
         )
 
@@ -482,7 +482,7 @@ class ReflowControllerUI(object):
             self.my_plane.yrange[0],
             helper.round_up(self.profile_selected.max_temperature) + 20,
         )
-        self.print("\n" * self.config["display"]["serial"]["lines_spacing_above"])
+        # self.print("\n" * self.config["display"]["serial"]["lines_spacing_above"])
         self.my_plane.clear_plot_lines()
         self.display.show(self.main_group)
         self.reflowcontroller.switch_to_state("calibrate")
@@ -570,7 +570,7 @@ class ReflowControllerUI(object):
 
     def states_reflow_running_enter(self):
         self.prepare_display_update()
-        self.print("\n" * self.config["display"]["serial"]["lines_spacing_above"])
+        # self.print("\n" * self.config["display"]["serial"]["lines_spacing_above"])
         self.my_plane.clear_plot_lines()
         self.display.show(self.main_group)
         # TODO: s-light: show profile as background graph
@@ -614,8 +614,8 @@ class ReflowControllerUI(object):
         #             runtime=self.profile_selected.runtime,
         #             target=self.reflowcontroller.heater_target,
         #             current=self.reflowcontroller.temperature,
-        #             orange=terminal.colors.fg.orange,
-        #             reset=terminal.colors.reset,
+        #             orange=terminal.AnsiColors.fg.orange,
+        #             reset=terminal.AnsiColors.reset,
         #             move_to_previous_lines=terminal.control.cursor.previous_line(
         #                 len(lines) + lines_spacing_above
         #             ),
@@ -645,8 +645,8 @@ class ReflowControllerUI(object):
         #             target=self.reflowcontroller.heater_target,
         #             current=self.reflowcontroller.temperature,
         #             error=self.reflowcontroller.pid.error,
-        #             orange=terminal.colors.fg.orange,
-        #             reset=terminal.colors.reset,
+        #             orange=terminal.AnsiColors.fg.orange,
+        #             reset=terminal.AnsiColors.reset,
         #             move_to_previous_lines=terminal.control.cursor.previous_line(1),
         #             erase_line=terminal.control.erase_line(0),
         #         ),
@@ -743,15 +743,15 @@ class ReflowControllerUI(object):
                 self.reflowcontroller.pid.P_gain = value
         elif input_string.startswith("pid i"):
             value = nb_serial.parse_value(input_string, "pid i")
-            if helper.is_number(value):
+            if nb_serial.is_number(value):
                 self.reflowcontroller.pid.I_gain = value
         elif input_string.startswith("pid d"):
             value = nb_serial.parse_value(input_string, "pid d")
-            if helper.is_number(value):
+            if nb_serial.is_number(value):
                 self.reflowcontroller.pid.D_gain = value
         # elif input_string.startswith(f "pid s"):
         #     value = nb_serial.parse_value(input_string, "pid s")
-        #     if helper.is_number(value):
+        #     if nb_serial.is_number(value):
         #         self.reflowcontroller.pid.set_point = value
 
     def userinput_event_handling(self, input_string):
@@ -769,7 +769,7 @@ class ReflowControllerUI(object):
             self.userinput_event_handling__pid(input_string)
         elif input_string.startswith("h"):
             value = nb_serial.parse_value(input_string, "h")
-            if helper.is_number(value):
+            if nb_serial.is_number(value):
                 self.reflowcontroller.heater_target = value
 
     statusline_template = (
