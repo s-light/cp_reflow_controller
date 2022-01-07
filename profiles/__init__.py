@@ -117,7 +117,7 @@ class Profile(object):
                 step["runtime_end"] = sum
                 step["temp_start"] = self.steps[index - 1]["temp_target"]
 
-    def print_profile(self, myprint=print):
+    def print_profile(self, myprint=print, table=False):
         # hopefully this workaround helps so that not as much temporary space is needed
         # for the long string output
         profile_template = (
@@ -141,16 +141,18 @@ class Profile(object):
         )
 
         for index, step in enumerate(self.steps):
-            myprint(self.formated_step(index, step, long=False, pre=" "))
+            # exclude first and last internal steps
+            if 0 < index < len(self.steps) - 1:
+                myprint(self.formated_step(index, step, long=False, pre=" "))
         # now the result should be the same as the output from format_profile.
 
-    def format_profile(self, long=False):
+    def format_profile(self, long=False, table=False):
         profile_template = (
             "Profile: {name}\n"
-            " title   {title}\n"
-            " alloy   {alloy}\n"
-            " melting_point  {melting_point: >3}°C\n"
-            " duration       {duration: >3}s\n"
+            " title           {title}\n"
+            " alloy           {alloy}\n"
+            " melting_point   {melting_point: >3}°C\n"
+            " duration        {duration: >3}s\n"
             " max_temperature {max_temperature: >3}°C\n"
             " steps:\n"
             "{steps}"
@@ -162,11 +164,52 @@ class Profile(object):
             melting_point=self.melting_point,
             duration=self.duration,
             max_temperature=self.max_temperature,
-            steps=self.formated_steps(pre=" ", long=long),
+            steps=self.formated_steps(pre=" ", long=long, table=table),
         )
 
     @staticmethod
-    def formated_step(index, step, long=False, pre=""):
+    def formated_step_table_header(*, pre="", long=False, field_sep="  "):
+        result = (
+            "{pre}"
+            "{field_sep}{index: >2}"
+            "{field_sep}{step_name: <15}"
+            "{field_sep}{temp_target}"
+            "{field_sep}{duration}"
+            "{field_sep}\n"
+            "".format(
+                pre=pre,
+                field_sep=field_sep,
+                index="step",
+                step_name="name",
+                temp_target="target",
+                duration="duration",
+            )
+        )
+        return result
+
+    @staticmethod
+    def formated_step_table(index, step, *, pre="", long=False, field_sep="  "):
+        result = ""
+        result += (
+            "{pre}"
+            "{field_sep}{index: >4}"
+            "{field_sep}{step_name: <15}"
+            "{field_sep}{temp_target: >4.0f}°C"
+            "{field_sep}{duration: >7}s"
+            "{field_sep}\n"
+            "".format(
+                pre=pre,
+                field_sep=field_sep,
+                index=index,
+                step_name="'{}'".format(step["name"]),
+                temp_target=step["temp_target"],
+                duration=step["duration"],
+            )
+        )
+        return result
+
+    @staticmethod
+    def formated_step(index, step, pre="", long=False):
         result = ""
         if long:
             result += (
@@ -194,6 +237,9 @@ class Profile(object):
                 # " step_name '{}'\n"
                 "{pre} temp_target   {temp_target: >3}°C\n"
                 "{pre} duration      {duration: >3}s\n"
+                # "{pre}step[{index: >2}] {step_name: <15}  "
+                # "t {temp_target: >3}°C  "
+                # "d {duration: >3}s\n"
                 "".format(
                     pre=pre,
                     index=index,
@@ -204,10 +250,20 @@ class Profile(object):
             )
         return result
 
-    def formated_steps(self, long=False, pre=""):
+    def formated_steps(self, pre="", long=False, table=False):
         result = ""
+        field_sep = "  "
+        if table:
+            result += self.formated_step_table_header(pre=pre, field_sep=field_sep)
         for index, step in enumerate(self.steps):
-            result += self.formated_step(index, step, long=long, pre=pre)
+            if table:
+                result += self.formated_step_table(
+                    index, step, pre=pre, long=long, field_sep=field_sep
+                )
+            else:
+                # exclude first and last internal steps
+                if 0 < index < len(self.steps) - 1:
+                    result += self.formated_step(index, step, pre=pre, long=long)
         return result
 
     def print_steps(self, long=False, pre=""):

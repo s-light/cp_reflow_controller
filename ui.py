@@ -543,10 +543,13 @@ class ReflowControllerUI(object):
         self.print(terminal.ANSIControl.erase_display(2))
         self.print("Do you really want to start the reflow cycle?")
         gc.collect()
-        self.print(self.profile_selected.format_profile())
+        self.print(self.profile_selected.format_profile(table=True))
+        # self.profile_selected.print_profile(myprint=self.print, table=True))
+        gc.collect()
 
         # for the small screen
-        self.print("selected profil: ", self.profile_selected.title)
+        # self.print("selected profil: ", self.profile_selected.title)
+        self.print()
         self.print("run: 'START';  cancle: any other button")
         self.print()
         self.pixels_all(self.colors["info"])
@@ -807,7 +810,7 @@ class ReflowControllerUI(object):
         "temp: {current: >6.02f}°C   "
         "target: {target: >6.02f}°C   "
         "error: {error: >6.02f}°C   "
-        "step: {step_name: <11s}   "
+        "step: {step_name: <13s}   "
         "runtime: {step_runtime: >7.2f}s   "
         "ui: {ui_state: <14}   "
         "ctr: {ctr_state: <14}"

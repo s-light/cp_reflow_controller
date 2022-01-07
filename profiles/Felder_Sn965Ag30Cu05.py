@@ -14,10 +14,11 @@ class Felder_ISO_Cream_Clear(profiles.Profile):
         self.alloy = "Sn96,5Ag3,0Cu0,5"
         self.melting_point = 220
         self.reference = "https://www.felder.de/files/felder/pdf/DE_23-Clear.pdf"
+        # duration: 780s = 13min
         self.steps = [
             {
                 "name": "prepare",
-                "duration": 60,
+                "duration": 80,
                 "temp_target": 50,
             },
             {
@@ -45,7 +46,7 @@ class Felder_ISO_Cream_Clear(profiles.Profile):
             },
             {
                 "name": "cool_set",
-                "duration": 0,
+                "duration": 2,
                 "temp_target": 45,
             },
             {
@@ -53,7 +54,7 @@ class Felder_ISO_Cream_Clear(profiles.Profile):
                 # datasheet says 70s
                 # we currently have no active cooling
                 # so we have to wait...
-                "duration": 180,
+                "duration": 310 - 2,
                 "temp_target": 45,
             },
             # {
