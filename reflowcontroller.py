@@ -68,10 +68,15 @@ class ReflowController(object):
             # "I_gain": 0.1,
             # "D_gain": 50.0,
             #
+            # seems stable
+            # "P_gain": 1.0,
+            # "I_gain": 0.0,
+            # "D_gain": 0.0,
+            #
             # please check with full profile
-            "P_gain": 1.0,
-            "I_gain": 0.1,
-            "D_gain": 10.0,
+            "P_gain": 4.5,
+            "I_gain": 0.0,
+            "D_gain": 0.0,
         },
         # all sub defaults for the UI are defined there.
     }
@@ -226,7 +231,7 @@ class ReflowController(object):
     def heater_setup(self):
         # self._heater_pwm = digitalio.DigitalInOut(self.get_pin("heater_pin"))
         # self._heater_pwm.direction = digitalio.Direction.OUTPUT
-        self._heater_pwm = pwmio.PWMOut(self.get_pin("heater_pin"), frequency=300)
+        self._heater_pwm = pwmio.PWMOut(self.get_pin("heater_pin"), frequency=350)
         # manually set heater off
         self._heater_pwm.duty_cycle = 65535
         self.pid = pid.PID(

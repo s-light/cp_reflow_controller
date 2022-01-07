@@ -542,15 +542,13 @@ class ReflowControllerUI(object):
         # clear full screen
         self.print(terminal.ANSIControl.erase_display(2))
         self.print("Do you really want to start the reflow cycle?")
-        self.print("selected profil:")
         gc.collect()
         self.print(self.profile_selected.format_profile())
 
         # for the small screen
-        self.print("selected profil:")
-        self.print(self.profile_selected.title)
-        self.print("run: 'START'")
-        self.print("cancle: any other button")
+        self.print("selected profil: ", self.profile_selected.title)
+        self.print("run: 'START';  cancle: any other button")
+        self.print()
         self.pixels_all(self.colors["info"])
         self.usb_cdc_data_enabled = True
 
@@ -696,8 +694,18 @@ class ReflowControllerUI(object):
 
         self.print("plot_name:")
         self.print(
-            "date_time__{plot_name}__P{P:0>5.2f}_I{I:0>5.2f}_D{D:0>5.2f}.svg".format(
+            # "date_time__{plot_name}__P{P:0>5.2f}_I{I:0>5.2f}_D{D:0>5.2f}.svg".format(
+            "__{plot_name}__P{P:0>5.2f}_I{I:0>5.2f}_D{D:0>5.2f}.svg".format(
                 plot_name=self.profile_selected.__name__,
+                P=self.reflowcontroller.pid.P_gain,
+                I=self.reflowcontroller.pid.I_gain,
+                D=self.reflowcontroller.pid.D_gain,
+            )
+        )
+        self.print("plot svg title:")
+        self.print(
+            # "date_time__{plot_name}__P{P:0>5.2f}_I{I:0>5.2f}_D{D:0>5.2f}.svg".format(
+            "P {P:0>5.2f} I {I:0>5.2f} D {D:0>5.2f}".format(
                 P=self.reflowcontroller.pid.P_gain,
                 I=self.reflowcontroller.pid.I_gain,
                 D=self.reflowcontroller.pid.D_gain,
