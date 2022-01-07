@@ -52,11 +52,26 @@ class ReflowController(object):
             "max31855_cs_pin": "D4",
             "heater_pin": "D12",
         },
+        # "pid": {
+        #     "description": "12V - 2Modules in Series",
+        #     "update_intervall": 0.1,
+        #     "P_gain": 10.0,
+        #     "I_gain": 0.1,
+        #     "D_gain": 1.0,
+        # },
         "pid": {
+            "description": "16V - 3Modules in Series",
             "update_intervall": 0.1,
-            "P_gain": 10.0,
+            # very stable
+            # but extreme high overshoot on fast rises (20° to 50° overshoots to ~110°)
+            # "P_gain": 10.0,
+            # "I_gain": 0.1,
+            # "D_gain": 50.0,
+            #
+            # please check with full profile
+            "P_gain": 2.5,
             "I_gain": 0.1,
-            "D_gain": 1.0,
+            "D_gain": 10.0,
         },
         # all sub defaults for the UI are defined there.
     }

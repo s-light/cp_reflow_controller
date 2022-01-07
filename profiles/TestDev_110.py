@@ -3,14 +3,14 @@ import profiles
 """TestDev Profile"""
 
 
-class TestDev_Profile_Slow(profiles.Profile):
-    """TestDev Profile"""
+class TestDev_110(profiles.Profile):
+    """TestDev Profile 110°C"""
 
     def config(self):
         # __name__ msut be the same as the class name
-        self.__name__ = "TestDev_Profile_Slow"
-        self.title = "TestDev Profile Slow "
-        self.title_short = "TestDev Profile Slow"
+        self.__name__ = "TestDev_110"
+        self.title = "TestDev Profile 110°C"
+        self.title_short = "TestDev 110°C"
         self.alloy = "42"
         self.melting_point = 110
         self.reference = "https://blog.s-light.eu/hot-plate-smd-soldering/"

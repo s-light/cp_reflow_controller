@@ -12,11 +12,14 @@ serial terminal & display terminal & drawing & button handling
 """
 # import os
 # import sys
-
 import time
+import gc
+
 import board
-import supervisor
 import usb_cdc
+
+# import supervisor
+
 from adafruit_pybadger import pybadger
 import displayio
 from adafruit_displayio_layout.widgets.cartesian import Cartesian
@@ -304,12 +307,13 @@ class ReflowControllerUI(object):
         # self.print(text, end="")
 
     def usb_cdc_data_setup(self):
+        self.usb_cdc_data_enabled = True
         self.usb_cdc_data_last_send = time.monotonic()
         self.usb_cdc_data_intervall = self.config["serial_data"]["intervall"]
 
     def usb_cdc_data_update(self):
         duration = time.monotonic() - self.usb_cdc_data_last_send
-        if duration > self.usb_cdc_data_intervall:
+        if duration > self.usb_cdc_data_intervall and self.usb_cdc_data_enabled:
             self.usb_cdc_data_send()
             self.usb_cdc_data_last_send = time.monotonic()
 
@@ -433,7 +437,7 @@ class ReflowControllerUI(object):
             self.buttons.select.update()
             # self.print("Button select")
             self.reflowcontroller.profile_select_next()
-            self.print_help()
+            self.userinput_print_help()
 
     def states_standby_leave(self):
         pass
@@ -484,7 +488,7 @@ class ReflowControllerUI(object):
         )
         # self.print("\n" * self.config["display"]["serial"]["lines_spacing_above"])
         self.my_plane.clear_plot_lines()
-        self.display.show(self.main_group)
+        # self.display.show(self.main_group)
         self.reflowcontroller.switch_to_state("calibrate")
 
     def states_calibration_running_update(self):
@@ -498,7 +502,7 @@ class ReflowControllerUI(object):
         duration = self.profile_selected.runtime - self.last_display_update
         if duration > self.display_update_intervall:
             self.last_display_update = self.profile_selected.runtime
-            self.reflow_update_ui_display()
+            # self.reflow_update_ui_display()
             # self.update_ui_serial_singleline(end="")
             self.pixels_set_proportional(
                 self.profile_selected.step_current_index,
@@ -539,6 +543,7 @@ class ReflowControllerUI(object):
         self.print(terminal.ANSIControl.erase_display(2))
         self.print("Do you really want to start the reflow cycle?")
         self.print("selected profil:")
+        gc.collect()
         self.print(self.profile_selected.format_profile())
 
         # for the small screen
@@ -547,6 +552,7 @@ class ReflowControllerUI(object):
         self.print("run: 'START'")
         self.print("cancle: any other button")
         self.pixels_all(self.colors["info"])
+        self.usb_cdc_data_enabled = True
 
     def states_reflow_prepare_update(self):
         if self.buttons.start.rose:
@@ -572,7 +578,8 @@ class ReflowControllerUI(object):
         self.prepare_display_update()
         # self.print("\n" * self.config["display"]["serial"]["lines_spacing_above"])
         self.my_plane.clear_plot_lines()
-        self.display.show(self.main_group)
+        # self.display.show(self.main_group)
+
         # TODO: s-light: show profile as background graph
         # graph_data = []
         # for step in self.profile_selected.setps:
@@ -669,7 +676,7 @@ class ReflowControllerUI(object):
         duration = self.profile_selected.runtime - self.last_display_update
         if duration > self.display_update_intervall:
             self.last_display_update = self.profile_selected.runtime
-            self.reflow_update_ui_display()
+            # self.reflow_update_ui_display()
             # self.reflow_update_ui_serial()
             # self.reflow_update_ui_serial(replace=False)
             self.pixels_set_proportional(
@@ -686,6 +693,8 @@ class ReflowControllerUI(object):
         self.print("reflow cycle done. ")
         self.print("please confirm: 'START'")
         self.print("")
+        # stop plot
+        self.usb_cdc_data_enabled = False
 
     def states_reflow_done_update(self):
         if self.buttons.start.rose:
@@ -695,6 +704,7 @@ class ReflowControllerUI(object):
     def states_reflow_done_leave(self):
         self.print("")
         self.pixels_all(self.colors["off"])
+        self.usb_cdc_data_enabled = True
 
     ##########################################
     # menu
