@@ -69,7 +69,7 @@ class ReflowController(object):
             # "D_gain": 50.0,
             #
             # please check with full profile
-            "P_gain": 2.5,
+            "P_gain": 1.0,
             "I_gain": 0.1,
             "D_gain": 10.0,
         },
@@ -120,7 +120,9 @@ class ReflowController(object):
         self.profiles_names = list(self.profiles.keys())
         self.profiles_names.sort()
         # ProfileCalibration is an internal profile not available as user selection.
-        self.profiles_names.remove("ProfileCalibration")
+
+        if "ProfileCalibration" in self.profiles_names:
+            self.profiles_names.remove("ProfileCalibration")
         self.profile_selected = self.profiles[self.profiles_names[0]]
 
         # get_current_step

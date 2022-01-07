@@ -43,12 +43,12 @@ class TestDev_60(profiles.Profile):
             },
             {
                 "name": "cool_set",
-                "duration": 0,
+                "duration": 1,
                 "temp_target": 25,
             },
             {
                 "name": "cool",
-                "duration": 230,
+                "duration": 229,
                 "temp_target": 25,
             },
         ]

@@ -322,10 +322,10 @@ class ReflowControllerUI(object):
 
     def switch_to_state(self, state):
         """switch to new state."""
-        state_name_old = None
+        # state_name_old = None
         if self.state_current:
             self.state_current.active = False
-            state_name_old = self.state_current.name
+            # state_name_old = self.state_current.name
         # success = None
         # try:
         #     self.state_current = self.states[state]
@@ -343,7 +343,7 @@ class ReflowControllerUI(object):
         # return success
         self.state_current = self.states[state]
         self.state_current.active = True
-        state_name_new = self.state_current.name
+        # state_name_new = self.state_current.name
         # self.print("UI state: '{}' -> '{}'".format(state_name_old, state_name_new))
         self.state_current.update()
 
@@ -692,6 +692,17 @@ class ReflowControllerUI(object):
         self.print("")
         self.print("reflow cycle done. ")
         self.print("please confirm: 'START'")
+        self.print("")
+
+        self.print("plot_name:")
+        self.print(
+            "date_time__{plot_name}__P{P:0>5.2f}_I{I:0>5.2f}_D{D:0>5.2f}.svg".format(
+                plot_name=self.profile_selected.__name__,
+                P=self.reflowcontroller.pid.P_gain,
+                I=self.reflowcontroller.pid.I_gain,
+                D=self.reflowcontroller.pid.D_gain,
+            )
+        )
         self.print("")
         # stop plot
         self.usb_cdc_data_enabled = False
