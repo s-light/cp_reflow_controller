@@ -47,7 +47,6 @@ class ReflowController(object):
 
     config_defaults = {
         "profile": "?",
-        "calibration": {"temperature": 30, "duration": 37},
         "hw": {
             "max31855_cs_pin": "D4",
             "heater_pin": "D12",
@@ -60,8 +59,8 @@ class ReflowController(object):
         #     "D_gain": 1.0,
         # },
         "pid": {
-            "description": "16V - 3Modules in Series",
             "update_intervall": 0.1,
+            # "description": "16V - 3Modules in Series",
             # very stable
             # but extreme high overshoot on fast rises (20° to 50° overshoots to ~110°)
             # "P_gain": 10.0,
@@ -73,6 +72,7 @@ class ReflowController(object):
             # "I_gain": 0.0,
             # "D_gain": 0.0,
             #
+            "description": "2S1P; 6x3cm; 24V; <=100W",
             # please check with full profile
             "P_gain": 4.5,
             "I_gain": 0.0,
@@ -125,9 +125,8 @@ class ReflowController(object):
         self.profiles_names = list(self.profiles.keys())
         self.profiles_names.sort()
         # ProfileCalibration is an internal profile not available as user selection.
-
-        if "ProfileCalibration" in self.profiles_names:
-            self.profiles_names.remove("ProfileCalibration")
+        # if "ProfileCalibration" in self.profiles_names:
+        #     self.profiles_names.remove("ProfileCalibration")
         self.profile_selected = self.profiles[self.profiles_names[0]]
 
         # get_current_step
@@ -168,8 +167,8 @@ class ReflowController(object):
     def profile_select_next(self):
         self.profile_selected = self.profiles[self.profile_get_next_name()]
 
-    def profile_select_calibration(self):
-        self.profile_selected = self.profiles["ProfileCalibration"]
+    # def profile_select_calibration(self):
+    #     self.profile_selected = self.profiles["ProfileCalibration"]
 
     def load_config(self, filename="/config.json"):
         self.config = {}
@@ -308,13 +307,13 @@ class ReflowController(object):
 
     def switch_to_state(self, state):
         """switch to new state."""
-        state_name_old = None
+        # state_name_old = None
         if self.state_current:
             self.state_current.active = False
-            state_name_old = self.state_current.name
+            # state_name_old = self.state_current.name
         self.state_current = self.states[state]
         self.state_current.active = True
-        state_name_new = self.state_current.name
+        # state_name_new = self.state_current.name
         # self.print("rc state: '{}' -> '{}'".format(state_name_old, state_name_new))
         self.state_current.update()
 
@@ -326,12 +325,6 @@ class ReflowController(object):
                 enter=self.states_standby_enter,
                 update=self.states_standby_update,
                 leave=self.states_standby_leave,
-            ),
-            "calibrate": State(
-                name="calibrate",
-                enter=self.calibrate_start,
-                update=self.calibrate_update,
-                leave=self.calibrate_finished,
             ),
             "reflow": State(
                 name="reflow",
@@ -376,24 +369,6 @@ class ReflowController(object):
     def reflow_finished(self):
         self.heater_target = False
         self.ui.switch_to_state("reflow_done")
-
-    ##########################################
-    # calibration functions
-    def calibrate_start(self):
-        self.profile_selected.start(temperature_min=self.temperature_reference)
-
-    def calibrate_update(self):
-        """
-        Calibrate / Analyse Heater behavior.
-
-        what do we want to get?!
-        StepTime?
-        """
-        self.reflow_update()
-
-    def calibrate_finished(self):
-        self.heater_target = False
-        self.ui.switch_to_state("calibration_done")
 
     ##########################################
     # main handling

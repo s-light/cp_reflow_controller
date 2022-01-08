@@ -367,25 +367,6 @@ class ReflowControllerUI(object):
                 update=self.states_standby_update,
                 leave=self.states_standby_leave,
             ),
-            # calibration cycle
-            "calibration_prepare": State(
-                name="calibration_prepare",
-                enter=self.states_calibration_prepare_enter,
-                update=self.states_calibration_prepare_update,
-                # leave=self.states_calibration_prepare_leave,
-            ),
-            "calibration_running": State(
-                name="calibration_running",
-                enter=self.states_calibration_running_enter,
-                update=self.states_calibration_running_update,
-                # leave=self.states_calibration_running_leave,
-            ),
-            "calibration_done": State(
-                name="calibration_done",
-                enter=self.states_calibration_done_enter,
-                update=self.states_calibration_done_update,
-                leave=self.states_calibration_done_leave,
-            ),
             # reflow cylce
             "reflow_prepare": State(
                 name="reflow_prepare",
@@ -419,7 +400,7 @@ class ReflowControllerUI(object):
         # update display
         if self.buttons.a.rose:
             self.buttons.a.update()
-            self.switch_to_state("calibration_prepare")
+            self.print("Button A")
             # self.print("Button A")
         if self.buttons.b.rose:
             self.buttons.b.update()
@@ -450,98 +431,6 @@ class ReflowControllerUI(object):
 
     def states_standby_leave(self):
         pass
-
-    ##########################################
-    # calibrate
-
-    ####################
-    # calibrate prepare
-
-    def states_calibration_prepare_enter(self):
-        self.print("Do you really want to start the calibration cycle?")
-        self.reflowcontroller.profile_select_calibration()
-        # for the small screen
-        self.print("selected profil:")
-        self.print(self.profile_selected.title)
-        self.print("run: 'START'")
-        self.print("cancle: any other button")
-        self.pixels_all(self.colors["info"])
-
-    def states_calibration_prepare_update(self):
-        if self.buttons.start.rose:
-            # self.switch_to_state("reflow_running")
-            self.switch_to_state("calibration_running")
-        elif (
-            self.buttons.select.rose
-            or self.buttons.a.rose
-            or self.buttons.b.rose
-            or self.buttons.up.rose
-            or self.buttons.down.rose
-            or self.buttons.right.rose
-            or self.buttons.left.rose
-        ):
-            self.switch_to_state("standby")
-
-    # def states_calibration_prepare_leave(self):
-    #     pass
-
-    ####################
-    # calibrate running
-
-    def states_calibration_running_enter(self):
-        # self.prepare_display_update()
-        # if self.config["display"]["plot"]:
-        #     # set special temperature range:
-        #     self.my_plane.yrange = (
-        #         self.my_plane.yrange[0],
-        #         helper.round_up(self.profile_selected.max_temperature) + 20,
-        #     )
-        #     # self.print("\n" * self.config["display"]["serial"]["lines_spacing_above"])
-        #     self.my_plane.clear_plot_lines()
-        #     self.display.show(self.main_group)
-        self.reflowcontroller.switch_to_state("calibrate")
-
-    def states_calibration_running_update(self):
-        if self.reflowcontroller.temperature_changed:
-            self.usb_cdc_data_send()
-        if self.buttons.select.rose:
-            self.buttons.select.update()
-            self.switch_to_state("standby")
-        # update display content
-        # only add new point every second..
-        duration = self.profile_selected.runtime - self.last_display_update
-        if duration > self.display_update_intervall:
-            self.last_display_update = self.profile_selected.runtime
-            self.reflow_update_ui_display()
-            # self.update_ui_serial_singleline(end="")
-            self.pixels_set_proportional(
-                self.profile_selected.step_current_index,
-                len(self.profile_selected.steps) - 1,
-                pixel_count=4,
-            )
-
-    # def states_calibration_running_leave(self):
-    #     self.switch_to_state("standby")
-
-    ####################
-    # calibrate done
-
-    def states_calibration_done_enter(self):
-        self.pixels_all(self.colors["done"])
-        self.print("")
-        self.print("calibration cycle done. ")
-        self.print("please confirm: 'START'")
-        self.print("")
-
-    def states_calibration_done_update(self):
-        if self.buttons.start.rose:
-            self.buttons.start.update()
-            self.switch_to_state("standby")
-
-    def states_calibration_done_leave(self):
-        self.print("calibration results:")
-        self.print("--> TODO!!!!")
-        self.pixels_all(self.colors["off"])
 
     ##########################################
     # reflow
@@ -757,7 +646,6 @@ class ReflowControllerUI(object):
             )
         self.print(
             "you can set some options:\n"
-            "- 'pid *' set pid *\n"
             "- 'pid p': proportional gain ({pid_p: >8.5f})\n"
             "- 'pid i': integral gain     ({pid_i: >8.5f})\n"
             "- 'pid d': derivative gain   ({pid_d: >8.5f})\n"
@@ -765,7 +653,6 @@ class ReflowControllerUI(object):
             "- 'h': set heater_target ({heater_target: > 7.2f})\n"
             "- 'pn' select next profil\n"
             "{profile_list}"
-            "- 'calibrate'\n"
             "- 'start' reflow cycle\n"
             "- 'stop'  reflow cycle\n"
             "".format(
@@ -799,9 +686,8 @@ class ReflowControllerUI(object):
 
     def userinput_event_handling(self, input_string):
         """Check Input."""
-        if input_string.startswith("calibrate"):
-            # self.calibrate()
-            self.switch_to_state("calibration_prepare")
+        if input_string.startswith("?"):
+            self.print("help:\n todo!\n please look at the source code for now...")
         elif input_string.startswith("start"):
             self.switch_to_state("reflow_prepare")
         elif input_string.startswith("stop"):
