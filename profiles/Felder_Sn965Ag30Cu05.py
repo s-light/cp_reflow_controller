@@ -33,7 +33,7 @@ class Felder_ISO_Cream_Clear(profiles.Profile):
             },
             # datasheet says:
             # about 40s
-            # and 60-90s in liquid state -> above  ~120°C
+            # and 60-90s in liquid state -> above  ~220°C
             {
                 "name": "reflow",
                 "duration": 30,

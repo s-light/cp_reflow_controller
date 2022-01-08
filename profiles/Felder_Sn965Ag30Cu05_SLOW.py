@@ -14,7 +14,20 @@ class Felder_ISO_Cream_Clear_SLOW(profiles.Profile):
         self.alloy = "Sn96,5Ag3,0Cu0,5"
         self.melting_point = 220
         self.reference = "https://www.felder.de/files/felder/pdf/DE_23-Clear.pdf"
+        # duration: 820s = 14min
         self.steps = [
+            # prepare for 120s
+            {
+                "name": "prepare",
+                "duration": 80,
+                "temp_target": 50,
+            },
+            {
+                "name": "prepareHOLD",
+                "duration": 40,
+                "temp_target": 50,
+            },
+            # now all things should be at 50°C.
             {
                 "name": "preheat",
                 "duration": 210,
@@ -22,9 +35,12 @@ class Felder_ISO_Cream_Clear_SLOW(profiles.Profile):
             },
             {
                 "name": "soak",
-                "duration": 120,
+                "duration": 90,
                 "temp_target": 200,
             },
+            # datasheet says:
+            # about 40s
+            # and 60-90s in liquid state -> above  ~220°C
             {
                 "name": "reflow",
                 "duration": 30,
@@ -33,11 +49,24 @@ class Felder_ISO_Cream_Clear_SLOW(profiles.Profile):
             {
                 "name": "reflow_hold",
                 "duration": 60,
-                "temp_target": 245,
+                "temp_target": 248,
+            },
+            {
+                "name": "cool_set",
+                "duration": 2,
+                "temp_target": 45,
             },
             {
                 "name": "cool",
-                "duration": 130,
-                "temp_target": 0,
+                # datasheet says 70s
+                # we currently have no active cooling
+                # so we have to wait...
+                "duration": 310 - 2,
+                "temp_target": 45,
             },
+            # {
+            #     "name": "cool_save",
+            #     "duration": 10,
+            #     "temp_target": 0,
+            # },
         ]

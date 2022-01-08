@@ -59,6 +59,7 @@ class ReflowControllerUI(object):
             "display_brightness": 0.1,
         },
         "display": {
+            "plot": False,
             "cartesian": {
                 "x": 30,
                 "y": 2,
@@ -136,21 +137,23 @@ class ReflowControllerUI(object):
         self.pixels = pybadger.pixels
         self.buttons = PyBadgeButtons()
 
-        # setup cartesian
-        # pybadge display:  160x128
-        # Create a Cartesian widget
-        # https://circuitpython.readthedocs.io/projects/displayio-layout/en/latest/api.html#module-adafruit_displayio_layout.widgets.cartesian
-        self.my_plane = Cartesian(
-            x=30,  # x position for the plane
-            y=2,  # y plane position
-            width=128,  # display width
-            height=105,  # display height
-            xrange=(0, helper.round_up(self.profile_selected.duration)),
-            yrange=(0, helper.round_up(self.profile_selected.max_temperature)),
-        )
-
         self.main_group = displayio.Group()
-        self.main_group.append(self.my_plane)
+
+        self.my_plane = None
+        if self.config["display"]["plot"]:
+            # setup cartesian
+            # pybadge display:  160x128
+            # Create a Cartesian widget
+            # https://circuitpython.readthedocs.io/projects/displayio-layout/en/latest/api.html#module-adafruit_displayio_layout.widgets.cartesian
+            self.my_plane = Cartesian(
+                x=30,  # x position for the plane
+                y=2,  # y plane position
+                width=128,  # display width
+                height=105,  # display height
+                xrange=(0, helper.round_up(self.profile_selected.duration)),
+                yrange=(0, helper.round_up(self.profile_selected.max_temperature)),
+            )
+            self.main_group.append(self.my_plane)
 
     def pixels_all(self, color):
         for index, pixel in enumerate(self.pixels):
@@ -183,24 +186,30 @@ class ReflowControllerUI(object):
                     self.pixels[index] = color_off
 
     def prepare_display_update(self):
-        # prepare display update timing
-        self.my_plane.xrange = (
-            self.my_plane.xrange[0],
-            helper.round_up(self.profile_selected.duration),
-        )
-        self.my_plane.yrange = (
-            self.my_plane.yrange[0],
-            helper.round_up(self.profile_selected.max_temperature),
-        )
-        # if self.my_plane.xrange[1] < self.my_plane._width:
-        #     pass
-        self.display_update_intervall = self.my_plane.xrange[1] / self.my_plane._width
-        if self.display_update_intervall >= 1.0:
-            self.display_update_intervall = round(self.display_update_intervall)
-        self.last_display_update = 0
-        self.print("self.my_plane.xrange", self.my_plane.xrange)
-        self.print("self.my_plane.yrange", self.my_plane.yrange)
-        self.print("self.display_update_intervall", self.display_update_intervall)
+        if self.config["display"]["plot"]:
+            # prepare display update timing
+            self.my_plane.xrange = (
+                self.my_plane.xrange[0],
+                helper.round_up(self.profile_selected.duration),
+            )
+            self.my_plane.yrange = (
+                self.my_plane.yrange[0],
+                helper.round_up(self.profile_selected.max_temperature),
+            )
+            # if self.my_plane.xrange[1] < self.my_plane._width:
+            #     pass
+            self.display_update_intervall = (
+                self.my_plane.xrange[1] / self.my_plane._width
+            )
+            if self.display_update_intervall >= 1.0:
+                self.display_update_intervall = round(self.display_update_intervall)
+            self.last_display_update = 0
+            self.my_plane.clear_plot_lines()
+            self.print("self.my_plane.xrange", self.my_plane.xrange)
+            self.print("self.my_plane.yrange", self.my_plane.yrange)
+            self.print("self.display_update_intervall", self.display_update_intervall)
+        else:
+            self.display_update_intervall = 1.0
 
     def show_heater_state(self, value, value_raw=None):
         if value:
@@ -480,15 +489,16 @@ class ReflowControllerUI(object):
     # calibrate running
 
     def states_calibration_running_enter(self):
-        self.prepare_display_update()
-        # set special temperature range:
-        self.my_plane.yrange = (
-            self.my_plane.yrange[0],
-            helper.round_up(self.profile_selected.max_temperature) + 20,
-        )
-        # self.print("\n" * self.config["display"]["serial"]["lines_spacing_above"])
-        self.my_plane.clear_plot_lines()
-        # self.display.show(self.main_group)
+        # self.prepare_display_update()
+        # if self.config["display"]["plot"]:
+        #     # set special temperature range:
+        #     self.my_plane.yrange = (
+        #         self.my_plane.yrange[0],
+        #         helper.round_up(self.profile_selected.max_temperature) + 20,
+        #     )
+        #     # self.print("\n" * self.config["display"]["serial"]["lines_spacing_above"])
+        #     self.my_plane.clear_plot_lines()
+        #     self.display.show(self.main_group)
         self.reflowcontroller.switch_to_state("calibrate")
 
     def states_calibration_running_update(self):
@@ -502,7 +512,7 @@ class ReflowControllerUI(object):
         duration = self.profile_selected.runtime - self.last_display_update
         if duration > self.display_update_intervall:
             self.last_display_update = self.profile_selected.runtime
-            # self.reflow_update_ui_display()
+            self.reflow_update_ui_display()
             # self.update_ui_serial_singleline(end="")
             self.pixels_set_proportional(
                 self.profile_selected.step_current_index,
@@ -577,25 +587,26 @@ class ReflowControllerUI(object):
 
     def states_reflow_running_enter(self):
         self.prepare_display_update()
-        # self.print("\n" * self.config["display"]["serial"]["lines_spacing_above"])
-        self.my_plane.clear_plot_lines()
-        # self.display.show(self.main_group)
-
-        # TODO: s-light: show profile as background graph
-        # graph_data = []
-        # for step in self.profile_selected.setps:
-        #     point = (step.["duration"], step.["temp_target"])
-        #     graph_data.append(point)
+        if self.config["display"]["plot"]:
+            self.display.show(self.main_group)
+            # TODO: s-light: show profile as background graph
+            # graph_data = []
+            # for step in self.profile_selected.setps:
+            #     point = (step.["duration"], step.["temp_target"])
+            #     graph_data.append(point)
         self.reflowcontroller.switch_to_state("reflow")
 
     def reflow_update_ui_display(self):
-        # self.print("display update.", self.profile_selected.runtime)
-        runtime = round(self.profile_selected.runtime)
-        if self.display_update_intervall < 1.0:
-            runtime = min(self.my_plane.xrange[1], self.profile_selected.runtime)
-        # hard limit so we trigger no out of range execption
-        temperature = min(self.my_plane.yrange[1], self.reflowcontroller.temperature)
-        self.my_plane.add_plot_line(runtime, temperature)
+        if self.config["display"]["plot"]:
+            # self.print("display update.", self.profile_selected.runtime)
+            runtime = round(self.profile_selected.runtime)
+            if self.display_update_intervall < 1.0:
+                runtime = min(self.my_plane.xrange[1], self.profile_selected.runtime)
+            # hard limit so we trigger no out of range execption
+            temperature = min(
+                self.my_plane.yrange[1], self.reflowcontroller.temperature
+            )
+            self.my_plane.add_plot_line(runtime, temperature)
 
     def old_unused_code_to_store_somewhere_for_maybe_later_use(self):
         # def update_ui_serial_multiline(self, replace=True):
