@@ -106,6 +106,8 @@ class ReflowControllerUI(object):
         self.usb_cdc_data_setup()
 
     def setup_serial(self):
+        # make some space so that nothing is overwritten...
+        print("\n" * 3)
         self.my_input = nb_serial.NonBlockingSerialInput(
             input_handling_fn=self.userinput_event_handling,
             print_help_fn=self.userinput_print_help,

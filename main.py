@@ -31,7 +31,6 @@ def main():
     print("board: " + board.board_id)
     print(42 * "*")
     myReflowController = ReflowController()
-    myReflowController.print("profile_selected: ", myReflowController.profile_selected)
     myReflowController.run()
 
 

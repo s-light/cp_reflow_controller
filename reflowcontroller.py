@@ -93,7 +93,13 @@ class ReflowController(object):
         self.load_profiles()
         self.load_config()
         # select stored profile
-        if self.config["profile"] in self.profiles_names:
+        # self.print(self.config["profile"])
+        # self.print(self.profiles_names)
+        # self.print(self.profiles_names.count(self.config["profile"]))
+        if self.profiles_names.count(self.config["profile"]) > 0:
+            self.print(
+                "set to profile '{}' from config.".format(self.config["profile"])
+            )
             self.profile_selected = self.profiles[self.config["profile"]]
         self.setup_hw()
         self.heater_setup()
