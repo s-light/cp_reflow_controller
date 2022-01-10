@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 # coding=utf-8
 
+# SPDX-FileCopyrightText: Copyright (c) 2021 Stefan Krüger s-light.eu
+#
+# SPDX-License-Identifier: MIT
+
 """
 simple pid control.
 
@@ -16,7 +20,7 @@ import time
 
 class PID:
     """
-    Discrete PID control.
+    Simple PID control.
 
     P: proportional
     I: integral
