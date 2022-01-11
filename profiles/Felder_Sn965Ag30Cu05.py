@@ -14,47 +14,63 @@ class Felder_ISO_Cream_Clear(profiles.Profile):
         self.alloy = "Sn96,5Ag3,0Cu0,5"
         self.melting_point = 220
         self.reference = "https://www.felder.de/files/felder/pdf/DE_23-Clear.pdf"
-        # duration: 780s = 13min
+        # duration: 600s = 10min
         self.steps = [
+            # prepare for 90s
             {
                 "name": "prepare",
-                "duration": 80,
+                "duration": 70,
                 "temp_target": 50,
             },
             {
+                "name": "prepareHOLD",
+                "duration": 20,
+                "temp_target": 50,
+            },
+            # now all things should be at 50°C.
+            # that is a good starting point.
+            # datasheet recommendations:
+            # START-150°C
+            # 120-210s
+            {
                 "name": "preheat",
-                "duration": 210,
+                "duration": 180,
                 "temp_target": 150,
             },
+            # datasheet recommendations:
+            # 150-200°C
+            # 50-120s
             {
                 "name": "soak",
-                "duration": 90,
+                "duration": 70,
                 "temp_target": 200,
             },
-            # datasheet says:
-            # about 40s
-            # and 60-90s in liquid state -> above  ~220°C
+            # datasheet recommendations:
+            # 200-240°C
+            # 60-90s
+            # in liquid state -> above  ~217°C
             {
                 "name": "reflow",
-                "duration": 30,
-                "temp_target": 220,
+                "duration": 25,
+                "temp_target": 235,
             },
             {
                 "name": "reflow_hold",
-                "duration": 60,
-                "temp_target": 245,
+                "duration": 45,
+                "temp_target": 235,
             },
             {
                 "name": "cool_set",
-                "duration": 2,
+                "duration": 5,
                 "temp_target": 45,
             },
             {
                 "name": "cool",
-                # datasheet says 70s
+                # datasheet recommendations:
+                # 70s
                 # we currently have no active cooling
                 # so we have to wait...
-                "duration": 310 - 2,
+                "duration": 190 - 5,
                 "temp_target": 45,
             },
             # {

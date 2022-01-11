@@ -28,19 +28,29 @@ class Felder_ISO_Cream_Clear_SLOW(profiles.Profile):
                 "temp_target": 50,
             },
             # now all things should be at 50°C.
+            # that is a good starting point.
+            # datasheet recommendations:
+            # START-150°C
+            # 120-210s
             {
                 "name": "preheat",
                 "duration": 210,
                 "temp_target": 150,
             },
+            # datasheet recommendations:
+            # 150-200°C
+            # 50-120s
             {
                 "name": "soak",
                 "duration": 90,
                 "temp_target": 200,
             },
-            # datasheet says:
+            # datasheet recommendations:
+            # 200-240°C
+            # 60-90s
+            # in liquid state -> above  ~217°C
+            #
             # about 40s
-            # and 60-90s in liquid state -> above  ~220°C
             {
                 "name": "reflow",
                 "duration": 30,
@@ -49,20 +59,21 @@ class Felder_ISO_Cream_Clear_SLOW(profiles.Profile):
             {
                 "name": "reflow_hold",
                 "duration": 60,
-                "temp_target": 248,
+                "temp_target": 240,
             },
             {
                 "name": "cool_set",
                 "duration": 2,
-                "temp_target": 45,
+                "temp_target": 50,
             },
             {
                 "name": "cool",
-                # datasheet says 70s
+                # datasheet recommendations:
+                # 70s
                 # we currently have no active cooling
                 # so we have to wait...
-                "duration": 310 - 2,
-                "temp_target": 45,
+                "duration": 290 - 2,
+                "temp_target": 40,
             },
             # {
             #     "name": "cool_save",
