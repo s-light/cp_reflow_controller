@@ -203,15 +203,15 @@ class ReflowControllerUI(object):
             self.display_update_intervall = (
                 self.my_plane.xrange[1] / self.my_plane._width
             )
-            if self.display_update_intervall >= 1.0:
-                self.display_update_intervall = round(self.display_update_intervall)
-            self.last_display_update = 0
             self.my_plane.clear_plot_lines()
             self.print("self.my_plane.xrange", self.my_plane.xrange)
             self.print("self.my_plane.yrange", self.my_plane.yrange)
-            self.print("self.display_update_intervall", self.display_update_intervall)
         else:
             self.display_update_intervall = 1.0
+        if self.display_update_intervall >= 1.0:
+            self.display_update_intervall = round(self.display_update_intervall)
+        # self.print("self.display_update_intervall", self.display_update_intervall)
+        self.last_display_update = 0
 
     def show_heater_state(self, value, value_raw=None):
         if value:
