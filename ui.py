@@ -587,6 +587,14 @@ class ReflowControllerUI(object):
                 len(self.profile_selected.steps) - 1,
                 pixel_count=4,
             )
+        # do this check as last one so it can overwrite the led and display output.
+        if self.buttons.b.rose:
+            self.buttons.b.update()
+            self.print("STOP REFLOW PROCESS!")
+            self.print("switch rc to standby")
+            self.reflowcontroller.switch_to_state("standby")
+            # self.print("switch ui to reflow_done")
+            # self.switch_to_state("reflow_done")
 
     ####################
     # reflow_done
