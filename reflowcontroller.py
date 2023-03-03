@@ -39,7 +39,7 @@ import profiles as myprofiles
 
 
 ##########################################
-# main classe
+# main class
 
 
 class ReflowController(object):

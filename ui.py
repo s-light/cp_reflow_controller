@@ -451,7 +451,7 @@ class ReflowControllerUI(object):
         # for the small screen
         # self.print("selected profil: ", self.profile_selected.title)
         self.print()
-        self.print("run: 'START';  cancle: any other button")
+        self.print("run: 'START';  cancel: any other button")
         self.print()
         self.pixels_all(self.colors["info"])
         self.usb_cdc_data_enabled = True
@@ -712,15 +712,15 @@ class ReflowControllerUI(object):
                 self.reflowcontroller.heater_target = value
 
     statusline_template = (
-        "uptime:{uptime: >8.2f}    "
+        "uptime:{uptime: >8.2f}      "
         # "temp: {current_color}{current: >6.02f}{reset}°C   "
-        "temp: {current: >6.02f}°C   "
-        "target: {target: >6.02f}°C   "
-        "error: {error: >6.02f}°C   "
-        "step: {step_name: <13s}   "
-        "runtime: {step_runtime: >7.2f}s   "
-        "ui: {ui_state: <14}   "
-        "ctr: {ctr_state: <14}"
+        "temp: {current: >6.02f}°C           "
+        "target: {target: >6.02f}°C         "
+        "error: {error: >6.02f}°C          "
+        "step: {step_name: <17s} "
+        "runtime: {step_runtime: >7.2f}s       "
+        "ui: {ui_state: <19} "
+        "ctr: {ctr_state: <18}"
     )
 
     def statusline_fn(self):

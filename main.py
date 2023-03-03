@@ -22,9 +22,11 @@ from reflowcontroller import ReflowController
 
 def main():
     """Main handling."""
-    for index in range(10):
+    wait_duration = 5
+    step_duration = 0.5
+    for index in range(wait_duration * step_duration):
         print(".", end="")
-        time.sleep(0.5 / 10)
+        time.sleep(step_duration / wait_duration)
     print("")
     print(42 * "*")
     print("Python Version: " + sys.version)
