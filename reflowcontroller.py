@@ -50,6 +50,7 @@ class ReflowController(object):
         "hw": {
             "max31855_cs_pin": "D4",
             "heater_pin": "D12",
+            "pwm_frequency": 350,
         },
         # "pid": {
         #     "description": "12V - 2Modules in Series",
@@ -236,7 +237,10 @@ class ReflowController(object):
     def heater_setup(self):
         # self._heater_pwm = digitalio.DigitalInOut(self.get_pin("heater_pin"))
         # self._heater_pwm.direction = digitalio.Direction.OUTPUT
-        self._heater_pwm = pwmio.PWMOut(self.get_pin("heater_pin"), frequency=350)
+        self._heater_pwm = pwmio.PWMOut(
+            self.get_pin("heater_pin"),
+            frequency=self.config["hw"]["pwm_frequency"],
+        )
         # manually set heater off
         self._heater_pwm.duty_cycle = 65535
         self.pid = pid.PID(

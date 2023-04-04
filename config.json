@@ -1,3 +1,6 @@
 {
-    "profile": "Felder_ISO_Cream_Clear_SLOW"
+    "profile": "Felder_ISO_Cream_Clear_SLOW",
+    "hw": {
+        "pwm_frequency": 75
+    }
 }
